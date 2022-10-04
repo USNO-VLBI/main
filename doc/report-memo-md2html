@@ -1,0 +1,34 @@
+#! /bin/bash
+
+cd "$(dirname "$0")"
+cat > report-memo.html << EOF
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body {
+          font: 14pt Arial, Helvetica, sans-serif;
+          line-height: 1.5;
+          background: rgb(250, 250, 250);
+        }
+        pre, code {
+          font-size: 0.9em;
+          font-family: Consolas, Menlo, Monaco, "Lucida Console", "Courier New", monospace;
+          background: rgba(127, 127, 127, 0.25);
+          line-height: 1.2;
+        }
+        pre { padding: 0.2em; border-radius: 0.2em; }
+        code { padding: 0 0.2em; border-radius: 0.2em; }
+        pre code { background: none; padding: 0; }
+        table { border-collapse: collapse; }
+        th { border-bottom: 1px solid black; }
+        td { padding: 0.5em; }
+        tr.odd { background: rgba(127, 127, 127, 0.1); }
+    </style>
+    <title>IVS Memorandum 2022 | Correlator Report</title>
+</head>
+<body>
+EOF
+pandoc report-memo.md -t html --columns=2147483647 >> report-memo.html
+echo '</body>' >> report-memo.html

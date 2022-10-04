@@ -1,0 +1,6 @@
+A file named `.CORRROOT` should be placed at the top level or "root" directory
+of the correlator code. You may alternatively or additionally specify the root
+directory with the `$CORRPATH` environment variable, in which case this file is
+unnecessary.
+
+This file may be left blank, as it is not actually read.

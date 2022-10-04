@@ -1,0 +1,517 @@
+%CORRELATOR_REPORT_FORMAT 3
+
++HEADER
+
+SESSION     A12345
+VGOSDB      20JAN31AA
+START       2022-031-1830
+END         2022-032-1830
+CORRELATOR  WACO
+ANALYST     Mai Sato, Jane Doe
+VERSION     1-1
+
++SUMMARY
+
+qcode     total  correlated
+---------------------------
+5-9       70.00%     90.00%
+0          4.00%      6.00%
+1-4,A-H,N 22.00%      2.00%
+removed    1.00%      0.00%
+
+* qcode       quality codes, error codes, or status
+* total       percent of total scans
+* correlated  percent of correlated scans
+
++STATIONS
+
+station name     mk4
+--------------------
+Ht      HART15M  J
+Is      ISHIOKA  I
+Kk      KOKEE    K
+Mc      MEDICINA c
+Ns      NYALE13S b
+Ny      NYALES20 N
+Sa      RAEGSMAR a
+Ur      URUMQI   X
+Wz      WETTZELL v
+Yg      YARRA12M y
+Zc      ZELENCHK Z
+
+* station  2-char station ID
+* name     3- to 8-char station name
+* mk4      1-char HOPS station code
+
++NOTES
+
+station  note
+----------------------------------------------------------------
+-        Final release with Ht data
+-        Likely source structure in XXX-XXXX, ...
+
+Mc       Stopped to observe another session 032-1808 -- 032-1830
+Mc       Removed channel from fringe fitting: SR6U
+Mc       Applied manual phase calibration
+
+Ny       Halted 032-1800 -- 032-1808
+
+Sa       Antenna problem 032-1606 -- 032-1628
+
+Ur       Not correlated
+Ur       Data could not be recovered from disk pack
+
+Yg       Applied manual phase calibration
+
+Zc       Stopped to observe intensive 032-0650 -- 032-0802
+Zc       Removed channel from fringe fitting: SR2U, SR3U
+
+Ns-Ny    Notch filters applied
+
+Ht-Is-Mc Closure ambiguities
+
+* station  2-char station ID, baseline, closure set, or - for general notes
+* note     correlator notes and feedback
+
++CLOCK
+
+st epoch           used-offset     used-rate  raw-offset    raw-rate    comment
+--------------------------------------------------------------------------------------
+Ht 2022-031-183000      8.014   5.797000E-14       5.114000   5.797000E-14
+Is 2022-031-183000      0.614  -5.412000E-14       0.312000  -5.412000E-14
+Kk 2022-031-183000     10.374  -4.017000E-13       9.857000  -4.017000E-13
+Kk 2022-032-063000     10.357  -4.017000E-13        -          -           clock-break
+Mc 2022-031-183000     -9.588  -5.356000E-14     -11.271000  -5.356000E-14
+Ns 2022-031-183000     24.738   3.679000E-13      22.865000   3.679000E-13
+Ny 2022-031-183000    -85.923  -4.449000E-13     -88.235000  -4.449000E-13
+Sa 2022-031-183000      1.678   7.533000E-14      -0.362000   7.533000E-14
+Wz 2022-031-183000     -4.957   2.973000E-14      -7.121000   2.973000E-14 reference
+Yg 2022-031-183000      7.784   2.375000E-12       5.507000   2.375000E-12
+Zc 2022-031-183000    214.970  -4.213000E-13      -1.678000  -4.213000E-13
+
+* st           2-char station ID
+* epoch        time coordinate of offsets and clock model segment start time
+* used-offset  (usec) station clock minus offset used in correlation at epoch
+* used-rate    drift rate of station clock minus offset used in correlation
+* raw-offset   (usec) station clock minus reference clock offset at epoch
+* raw-rate     drift rate of station clock minus reference clock offset
+* comment      clock-break, reference station, or other notes
+
++CHANNELS
+
+channel id frequency
+--------------------
+S00UR   a    2225.99
+S01UR   b    2245.99
+S02UR   c    2265.99
+S03UR   d    2295.99
+S04UR   e    2345.99
+S05UR   f    2365.99
+X06LR   g-   8212.99
+X06UR   g+   8212.99
+X07UR   h    8252.99
+X08UR   i    8352.99
+X09UR   j    8512.99
+X10UR   k    8732.99
+X11UR   l    8852.99
+X12UR   m    8912.99
+X13LR   n-   8932.99
+X13UR   n+   8932.99
+
+* channel    HOPS channel name
+* id         short name with sideband indicator
+* frequency  (MHz) sky frequency
+
++DROP_CHANNELS
+
+Mc     SR6U
+Zc     SR2U, SR3U
+Ns-Ny  SR2U
+
++MANUAL_PCAL
+
+Mc
+Yg
+
++QCODES
+
+bl:band  0 1 2 3 4 5  6   7    8     9   G  H    N   - total
+------------------------------------------------------------
+JI:S    11 0 0 0 0 0  0   0    1    56   0  0    0   0    68
+JI:X    19 0 0 0 0 0  0   0    2    47   0  0    0   0    68
+Jc:S     2 0 0 0 0 0  0   0    3   138   1  0    0   3   147
+Jc:X     3 0 0 0 0 0  0   0    3   138   0  0    0   3   147
+Jb:S    37 0 0 0 0 0  4   2    3    29   0  0    0   0    75
+Jb:X    22 0 0 0 0 0  0   0    3    49   1  0    0   0    75
+JN:S     4 0 0 0 0 0  0   1    1    76   0  0    0   0    82
+JN:X    44 0 0 0 0 0  0   1    6    30   1  0    0   0    82
+Ja:S    21 0 0 0 0 0  1   5   44    87   1  0    0   0   159
+Ja:X    14 0 0 0 0 0  0   0    5   140   0  0    0   0   159
+JX:S     0 0 0 0 0 0  0   0    0     0   0  0  119   0   119
+JX:X     0 0 0 0 0 0  0   0    0     0   0  0  119   0   119
+Jv:S     6 0 0 0 0 0  0   0    0   125   0  0    0   0   131
+Jv:X     2 0 0 0 0 0  0   3    6   120   0  0    0   0   131
+Jy:S    15 0 0 0 0 0  0   0    4   151   0  0    0   0   170
+Jy:X    14 0 0 0 0 0  1   0    5   150   0  0    0   0   170
+JZ:S     5 0 0 0 0 0  0   1    8   121   0  0    0   3   138
+JZ:X     2 0 0 0 0 0  0   0    0   133   0  0    0   3   138
+IK:S     2 0 0 0 0 0  0   0    7   237   0  0    0   0   246
+IK:X     5 0 0 0 0 1 11   1   41    99  88  0    0   0   246
+Ic:S     0 0 0 0 0 0  0   0    4   163   0  0    0   3   170
+Ic:X     0 0 0 0 0 0  1   2  125    39   0  0    0   3   170
+Ib:S    60 0 0 0 0 0  2   1    8   129   0  0    0   0   200
+Ib:X     5 0 0 0 0 0  0   7   68   120   0  0    0   0   200
+IN:S     0 0 0 0 0 0  0   1   10   198   0  0    0   0   209
+IN:X    49 0 0 0 0 0  0   0   11   149   0  0    0   0   209
+Ia:S    13 0 0 0 0 0  0   0   12   106   0  0    1   0   132
+Ia:X     6 0 0 0 0 0  0   0   13   112   0  0    1   0   132
+IX:S     0 0 0 0 0 0  0   0    0     0   0  0  254   0   254
+IX:X     0 0 0 0 0 0  0   0    0     0   0  0  254   0   254
+Iv:S     4 0 0 0 0 0  0   0    3   172   0  0    0   0   179
+Iv:X     2 0 0 0 0 0  0   2   21   154   0  0    0   0   179
+Iy:S    13 0 0 0 0 0  0   0    0   107   0  0    0   0   120
+Iy:X     1 0 0 0 0 0  0   1    6   112   0  0    0   0   120
+IZ:S     6 0 0 0 0 0  0   1   19   124   3  3    1  10   167
+IZ:X     0 0 0 0 0 0  0   0   45   111   0  0    1  10   167
+Kc:S     0 0 0 0 0 0  0   0    6   118   0  0    0   0   124
+Kc:X     0 0 0 0 0 0  1   0    9   114   0  0    0   0   124
+Kb:S    30 0 0 0 0 0  3   4   14   111   1  0    0   0   163
+Kb:X     5 0 0 0 0 0  0   1    7   150   0  0    0   0   163
+KN:S     2 0 0 0 0 0  0   1   14   159   0  0    0   0   176
+KN:X    68 0 0 0 0 0  0   1    2   105   0  0    0   0   176
+Ka:S     6 0 0 0 0 0  0   1   43    96   1  0    1   0   148
+Ka:X     8 0 0 0 0 0  0   1    7   131   0  0    1   0   148
+KX:S     0 0 0 0 0 0  0   0    0     0   0  0  147   0   147
+KX:X     0 0 0 0 0 0  0   0    0     0   0  0  147   0   147
+Kv:S     3 0 0 0 0 0  1   0    2   133   0  0    0   0   139
+Kv:X     1 0 0 0 0 0  0   1   13   124   0  0    0   0   139
+Ky:S     7 0 0 0 0 0  0   0    3    82   2  0    0   0    94
+Ky:X    10 0 0 0 0 0  1   1    6    76   0  0    0   0    94
+KZ:S     5 0 0 0 0 0  0   1   19    69   1  3    1   9   108
+KZ:X     0 0 0 0 0 0  0   0    7    91   0  0    1   9   108
+cb:S    15 0 0 0 0 2 12  20   68   136   5  0    0   4   262
+cb:X     1 0 0 0 0 0  1  19  127   108   2  0    0   4   262
+cN:S     0 0 0 0 0 0  1  11   29   232   0  0    0   4   277
+cN:X     0 0 0 0 0 0  0   7  127   135   4  0    0   4   277
+ca:S     5 0 0 0 0 2  2  10   73   189   1  0    1   2   285
+ca:X     5 0 0 0 0 0  2   5   35   235   0  0    1   2   285
+cX:S     0 0 0 0 0 0  0   0    0     0   0  0  241   5   246
+cX:X     0 0 0 0 0 0  0   0    0     0   0  0  241   5   246
+cv:S     0 0 0 0 0 0  0   0   20   330   0  0    0   6   356
+cv:X     0 0 0 0 0 0  3   7  104   236   0  0    0   6   356
+cy:S     4 0 0 0 0 0  0   0    1    41   0  0    0   1    47
+cy:X     5 0 0 0 0 0  0   0    1    40   0  0    0   1    47
+cZ:S     3 0 0 0 0 0  1  13   69   183   1  5    1  21   297
+cZ:X     0 0 0 0 0 0  0   0    2   273   0  0    1  21   297
+bN:S     7 0 0 0 0 0  0  16   72   129  91  0    0   0   315
+bN:X    13 0 0 0 0 0  0   0   30   142 129  1    0   0   315
+ba:S    54 0 0 0 0 2  4   5    6   149   4  0    1   0   225
+ba:X     6 0 0 0 0 0  1   3  103   106   4  1    1   0   225
+bX:S     0 0 0 0 0 0  0   0    0     0   0  0  240   0   240
+bX:X     0 0 0 0 0 0  0   0    0     0   0  0  240   0   240
+bv:S    58 0 0 0 0 0  6   9   22   165  10  0    0   0   270
+bv:X     1 0 0 0 0 0  2  33  154    79   1  0    0   0   270
+by:S    24 0 0 0 0 0  0   0    3     2   0  0    0   0    29
+by:X     1 0 0 0 0 0  0   0    5    23   0  0    0   0    29
+bZ:S    81 0 0 0 0 0  6   4   23   110   0  1    1  13   239
+bZ:X     2 0 0 0 0 0  0   5  108   109   1  0    1  13   239
+Na:S     7 0 0 0 0 0  1   8   83   143   1  0    1   0   244
+Na:X    34 0 0 0 0 0  0   1   23   177   8  0    1   0   244
+NX:S     0 0 0 0 0 0  0   0    0     0   0  0  229   0   229
+NX:X     0 0 0 0 0 0  0   0    0     0   0  0  229   0   229
+Nv:S     1 0 0 0 0 0  0   2   24   248   1  0    0   0   276
+Nv:X     8 0 0 0 0 0  0   0   53   212   3  0    0   0   276
+Ny:S     3 0 0 0 0 0  0   0    1    31   0  0    0   0    35
+Ny:X    12 0 0 0 0 0  0   0    3    19   1  0    0   0    35
+NZ:S     3 0 0 0 0 0  0   5   34   180   3  4    1  12   242
+NZ:X     1 0 0 0 0 0  0   1   73   145   9  0    1  12   242
+aX:S     0 0 0 0 0 0  0   0    0     0   0  0  170   3   173
+aX:X     0 0 0 0 0 0  0   0    0     0   0  0  170   3   173
+av:S     5 0 0 0 0 0  0  13   76   173   0  0    1   0   268
+av:X     5 0 0 0 0 0  1   7   74   180   0  0    1   0   268
+ay:S     6 0 0 0 0 0  0   0    1    11   0  0    0   0    18
+ay:X     3 0 0 0 0 0  0   0    3    12   0  0    0   0    18
+aZ:S     6 0 0 0 0 0  2  40   80    67   1  1    2   9   208
+aZ:X     5 0 0 0 0 0  0   1   19   172   0  0    2   9   208
+Xv:S     0 0 0 0 0 0  0   0    0     0   0  0  248   0   248
+Xv:X     0 0 0 0 0 0  0   0    0     0   0  0  248   0   248
+Xy:S     0 0 0 0 0 0  0   0    0     0   0  0   91   0    91
+Xy:X     0 0 0 0 0 0  0   0    0     0   0  0   91   0    91
+XZ:S     0 0 0 0 0 0  0   0    0     0   0  0  254  18   272
+XZ:X     0 0 0 0 0 0  0   0    0     0   0  0  254  18   272
+vy:S    11 0 0 0 0 0  0   0    1    31   0  0    0   0    43
+vy:X     7 0 0 0 0 0  0   1    5    30   0  0    0   0    43
+vZ:S     3 0 0 0 0 0  0   2   39   218   3  4    1  15   285
+vZ:X     0 0 0 0 0 0  0   4   40   225   0  0    1  15   285
+yZ:S    12 0 0 0 0 0  0   3    5    50   0  0    0   3    73
+yZ:X     0 0 0 0 0 0  0   0    1    69   0  0    0   3    73
+total  949 0 0 0 0 7 71 296 2459 10826 383 23 4014 288 19316
+
+* bl:band  baseline and frequency band name
+* 0        no fringe detected
+* 1-9      fringe detected, higher value means better quality
+* B        fourfit interpolation error
+* D        no data in one or more frequency channels
+* E        fringe found at edge of SBD, MBD, or rate window
+* F        fork problem in processing
+* G        channel amplitude diverges too far from mean amplitude
+* H        low phase-cal amplitude in one or more channels
+* N        correlation or fringing failed
+* -        correlation not attempted
+* total    column and row totals
+
++SNR_RATIOS
+
+bl     S  n_S     X  n_X
+------------------------
+JI  0.85   56  0.74   49
+Jc  1.36  142  0.83  141
+JN  1.19   77  0.45   38
+Jb  0.46   37  0.46   53
+Ja  0.94  138  0.62  145
+Jv  0.86  125  0.58  129
+Jy  1.08  155  1.24  156
+JZ  0.75  130  0.73  133
+IK  0.84  244  0.60  241
+Ic  1.25  167  1.10  167
+IN  1.16  209  0.37  160
+Ib  0.42  134  0.48  195
+Ia  0.82  118  0.73  125
+Iv  0.79  175  0.78  177
+Iy  0.99  107  1.04  119
+IZ  0.63  149  0.93  156
+Kc  1.09  124  1.14  124
+KN  1.03  174  0.42  108
+Kb  0.36  132  0.54  158
+Ka  0.86  141  0.77  139
+Kv  0.69  136  0.78  138
+Ky  0.90   87  1.32   84
+KZ  0.48   93  0.83   98
+cN  1.96  273  0.65  273
+cb  0.68  239  0.96  257
+ca  1.48  277  1.48  277
+cv  1.52  350  1.60  350
+cy  1.34   42  1.56   41
+cZ  1.06  272  1.78  275
+Nb  0.84  302  0.39  302
+Na  1.26  236  0.46  209
+Nv  1.23  275  0.45  268
+Ny  1.22   32  0.59   23
+NZ  1.00  226  0.50  228
+ba  0.45  161  0.61  218
+bv  0.43  208  0.62  269
+by  0.65    5  0.52   28
+bZ  0.28  137  0.70  223
+av  0.92  262  1.02  262
+ay  0.89   12  1.07   15
+aZ  0.70  190  1.17  192
+vy  0.96   32  1.23   36
+vZ  0.72  266  1.19  269
+yZ  0.79   58  1.36   70
+
+* bl       baseline
+* [A-Z]    ratio for this band name
+* n_[A-Z]  number of scans in average for this band name
+
++EOP
+
+  mjd  tai-utc     ut1-utc     xpole     ypole
+----------------------------------------------
+58464     37.0  -0.0204192  0.126826  0.270904
+58465     37.0  -0.0209216  0.124899  0.270498
+58466     37.0  -0.0215037  0.123057  0.270012
+58467     37.0  -0.0221965  0.121150  0.269523
+58468     37.0  -0.0230079  0.119267  0.268982
+
+* mjd      integer modified Julian date
+* tai-utc  (sec) TAI minus UTC offset
+* ut1-utc  (sec) UT1 minus UTC offset
+* xpole    X pole EOP parameter
+* ypole    Y pole EOP parameter
+
++CORRELATION
+
+SOFTWARE    DiFX
+VERSION     2.6.1
+PATCH       difx2mark4 bugfix
+ALGORITHM   FX
+NCHAN       16
+FFTSPECRES  0.125 MHz
+SPECRES     0.5 MHz
+TINT        1.0 sec
+
++FRINGING
+
+SOFTWARE  HOPS
+VERSION   3.22-3226
+PATCH     VGOS station listing bugfix
+
++VGOSDB
+
+SOFTWARE  nuSolve
+VERSION   0.7.2
+PATCH     Qt RGBA version compatibility fix
+
++CORRELATION_CONFIG_FILE
+
+vex = i22101.vex
+singleScan = true
+antennas = KK, WZ
+SETUP normalSetup {
+  FFTSpecRes = 0.03125
+  specRes = 0.125
+  tInt = 2
+}
+RULE scansubset {
+  setup = normalSetup
+}
+ANTENNA KK {
+  phaseCalInt = 1
+  toneSelection = all
+  filelist = i22101_kk.filelist
+}
+ANTENNA WZ {
+  phaseCalInt = 1
+  toneSelection = all
+  filelist = i22101_wz.filelist
+}
+
++FRINGING_CONFIG_FILE
+
+sb_win -256.0 256.0
+mb_win -256.0 256.0
+dr_win -0.030 0.030
+pc_mode multitone
+pc_period 5
+
+if f_group S  ref_freq 2225.99
+if f_group X  ref_freq 8212.99
+
+if station K and f_group S  pc_tonemask abcdef 16 16 16 16 16 16
+if station K and f_group X  pc_tonemask ghijklmn 148 132 132 132 132 132 132 132
+
+if station I and f_group S  pc_tonemask abcdef 239 239 239 239 239 239
+if station I and f_group X  pc_tonemask ghijklmn 127 127 127 127 127 127 127 127
+
+if station b and f_group S  pc_tonemask abcdef 239 239 239 239 239 239
+if station b and f_group X  pc_tonemask ghijklmn 251 251 251 251 251 251 251 251
+
+if station a and f_group S  pc_tonemask abcdef 239 239 239 239 239 239
+if station a and f_group X  pc_tonemask ghijklmn 251 251 251 251 251 251 251 251
+
+if station J  lsb_offset   0.0
+if station I  lsb_offset   0.0
+if station K  lsb_offset  70.0
+if station c  lsb_offset   0.0
+if station N  lsb_offset   0.0
+if station b  lsb_offset   0.0
+if station a  lsb_offset   0.0
+if station X  lsb_offset   0.0
+if station v  lsb_offset   0.0
+if station y  lsb_offset -20.0
+if station Z  lsb_offset 160.0
+
+if station c and f_group S  freqs a b c d e
+if station Z and f_group S  freqs a     d e f
+
+if station c and f_group S
+  pc_mode manual
+  pc_phases abcde 118.8 102.3 98.4 114.1 109.9
+if station c and f_group X
+  pc_mode manual
+  pc_phases ghijklmn 0.5 54.5 72.0 126.7 44.0 35.1 9.5 35.3
+
+if station y and f_group S
+  pc_mode manual
+  pc_phases abcdef -67.3 -85.8 -108.7 -105.5 -105.0 -66.5
+if station y and f_group X
+  pc_mode manual
+  pc_phases ghijklmn 24.8 11.1 31.7 101.8 35.6 -4.1 -47.5 59.3
+
+if baseline bN
+  notches
+    2225.74 2226.24  2226.74 2227.24  2227.74 2228.24  2228.74 2229.24
+    2229.74 2230.24  2230.74 2231.24  2231.74 2232.24  2232.74 2233.24
+    2245.74 2246.24  2246.74 2247.24  2247.74 2248.24  2248.74 2249.24
+    2249.74 2250.24  2250.74 2251.24  2251.74 2252.24  2252.74 2253.24
+    2265.74 2266.24  2266.74 2267.24  2267.74 2268.24  2268.74 2269.24
+    2269.74 2270.24  2270.74 2271.24  2271.74 2272.24  2272.74 2273.24
+    2295.74 2296.24  2296.74 2297.24  2297.74 2298.24  2298.74 2299.24
+    2299.74 2300.24  2300.74 2301.24  2301.74 2302.24  2302.74 2303.24
+    2345.74 2346.24  2346.74 2347.24  2347.74 2348.24  2348.74 2349.24
+    2349.74 2350.24  2350.74 2351.24  2351.74 2352.24  2352.74 2353.24
+    2365.74 2366.24  2366.74 2367.24  2367.74 2368.24  2368.74 2369.24
+    2369.74 2370.24  2370.74 2371.24  2371.74 2372.24  2372.74 2373.24
+    8204.74 8205.24  8205.74 8206.24  8206.74 8207.24  8207.74 8208.24
+    8208.74 8209.24  8209.74 8210.24  8210.74 8211.24  8211.74 8212.24
+    8212.74 8213.24  8213.74 8214.24  8214.74 8215.24  8215.74 8216.24
+    8216.74 8217.24  8217.74 8218.24  8218.74 8219.24  8219.74 8220.24
+    8252.74 8253.24  8253.74 8254.24  8254.74 8255.24  8255.74 8256.24
+    8256.74 8257.24  8257.74 8258.24  8258.74 8259.24  8259.74 8260.24
+    8352.74 8353.24  8353.74 8354.24  8354.74 8355.24  8355.74 8356.24
+    8356.74 8357.24  8357.74 8358.24  8358.74 8359.24  8359.74 8360.24
+    8512.74 8513.24  8513.74 8514.24  8514.74 8515.24  8515.74 8516.24
+    8516.74 8517.24  8517.74 8518.24  8518.74 8519.24  8519.74 8520.24
+    8732.74 8733.24  8733.74 8734.24  8734.74 8735.24  8735.74 8736.24
+    8736.74 8737.24  8737.74 8738.24  8738.74 8739.24  8739.74 8740.24
+    8852.74 8853.24  8853.74 8854.24  8854.74 8855.24  8855.74 8856.24
+    8856.74 8857.24  8857.74 8858.24  8858.74 8859.24  8859.74 8860.24
+    8912.74 8913.24  8913.74 8914.24  8914.74 8915.24  8915.74 8916.24
+    8916.74 8917.24  8917.74 8918.24  8918.74 8919.24  8919.74 8920.24
+    8924.74 8925.24  8925.74 8926.24  8926.74 8927.24  8927.74 8928.24
+    8928.74 8929.24  8929.74 8930.24  8930.74 8931.24  8931.74 8932.24
+    8932.74 8933.24  8933.74 8934.24  8934.74 8935.24  8935.74 8936.24
+    8936.74 8937.24  8937.74 8938.24  8938.74 8939.24  8939.74 8940.24
+
+if station I and f_group S
+  pc_phases abcdef 1.6 -2.0 0.8 0.1 -2.9 2.5
+if station I and f_group X
+  pc_phases ghijklmn 17.4 -7.1 -8.1 2.3 -5.7 -10.7 -12.4 25.3
+
+if station J and f_group S
+  pc_phases abcdef -3.4 0.9 2.0 2.1 1.2 -2.7
+if station J and f_group X
+  pc_phases ghijklmn -3.5 6.2 -15.6 15.8 3.7 8.0 -10.5 -4.1
+
+if station K and f_group S
+  pc_phases abcdef 3.0 -1.8 -0.3 -0.5 -4.2 3.8
+if station K and f_group X
+  pc_phases ghijklmn -17.7 23.7 7.2 0.2 -7.3 -3.9 -5.8 4.2
+
+if station N and f_group S
+  pc_phases abcdef -10.9 0.7 9.3 7.1 -5.1 -0.8
+if station N and f_group X
+  pc_phases ghijklmn 3.0 3.8 -12.6 -3.9 10.5 2.4 -1.9 -1.4
+
+if station Z and f_group S
+  pc_phases adef -4.1 9.6 -4.0 -1.4
+if station Z and f_group X
+  pc_phases ghijklmn -5.2 5.6 5.5 -1.8 5.9 -3.9 -9.3 3.2
+
+if station a and f_group S
+  pc_phases abcdef 25.4 -31.7 18.3 -47.7 32.1 -12.9
+if station a and f_group X
+  pc_phases ghijklmn -11.2 -6.8 2.0 14.4 38.8 -7.7 -14.4 -12.5
+
+if station b and f_group S
+  pc_phases abcdef -2.5 -1.6 10.0 -10.6 0.7 3.7
+if station b and f_group X
+  pc_phases ghijklmn -8.9 11.3 11.4 -3.5 -2.5 -5.1 -10.2 7.5
+
+if baseline bN and f_group S  mb_win -0.035 -0.025
+if baseline NZ and f_group S  mb_win  0.030  0.050
+if baseline aZ and f_group S  mb_win -0.015  0.010
+if baseline bZ and f_group S  mb_win  0.000  0.015
+if baseline cZ and f_group S  mb_win  0.010  0.025
+if baseline ba and f_group S  mb_win  0.005  0.020
+if baseline IZ and f_group S  mb_win  0.030 -0.040
+if baseline Ib and f_group S  mb_win  0.030  0.045
+if baseline JZ and f_group S  mb_win -0.050 -0.010
+if baseline ca and f_group S  mb_win  0.010  0.030
+if baseline cb and f_group S  mb_win  0.000  0.020
+if baseline bv and f_group S  mb_win  0.035  0.050
+if baseline vZ and f_group S  mb_win -0.040 -0.030
+if baseline Jb and f_group S  mb_win -0.050 -0.020
+if baseline yZ and f_group S  mb_win  0.030 -0.040
+
++END
