@@ -24,7 +24,9 @@ import stat
 import sys
 import vlbi
 
-FORMAT_DATES = {'1.0': dt.datetime(2001, 8, 21), '2.0': dt.datetime(2022, 8, 1)}
+FORMAT_DATES = {
+	'1.0': dt.datetime(2001, 8, 21), '2.0': dt.datetime(2022, 11, 1)
+}
 FORMAT_AUTHS = {'1.0': 'CCT&NRV', '2.0': 'CAD&CCT'}
 MONS = 'JAN FEB MAR APR MAY JUN JUL AUG SEP OCT NOV DEC'.split()
 MONTHS = (
