@@ -11,10 +11,11 @@ usage:
 * `s.stations['Kk']` get whether station participated (case-insenstive)
 '''
 
-from typing import Callable, Iterable, Iterator, Mapping, Set, Tuple, Union
+from typing import Callable, Iterable, Iterator, Mapping, Set, Union
 import argparse
 import collections.abc
 import datetime as dt
+import json
 import math
 import operator
 import os
@@ -50,6 +51,7 @@ RE_UPDATE = re.compile(rf'''
 RE_PARTICIPATION = re.compile(r'\s*((?:\S\S)*)(?:\s*-\s*((?:\S\S)*))?\s*$')
 SPLIT_STATIONS = re.compile(r'..').findall
 _PROPERTY = lambda i, doc: property(operator.itemgetter(i), doc=doc)
+_TYPES_CACHE: Mapping[str, Iterable[str]] = None
 
 def NOOP(*_, **__):
 	'''Do nothing'''
@@ -88,12 +90,16 @@ def get_session(
 			continue
 	raise KeyError(code)
 
-def type_of(name: str, code: str, dbc: str) -> str:
+def type_of(code: str) -> str:
 	'''Type code for a session'''
-	text = (name or '') + ',' + (code or '') + ',' + (dbc or '')
-	for type_name, regex in RE_TYPES:
-		type_name, n = regex.subn(type_name, text)
-		if n:
+	global _TYPES_CACHE
+	if _TYPES_CACHE is None:
+		with open(os.path.join(vlbi.ROOT, 'etc', 'master-type-map.json')) as f:
+			_TYPES_CACHE = json.load(f)
+		_TYPES_CACHE = {k: set(v) for k, v in _TYPES_CACHE.items()}
+	code = code.lower()
+	for type_name, codes in _TYPES_CACHE.items():
+		if code in codes:
 			return type_name
 	return code.upper()
 
@@ -172,7 +178,7 @@ class Session(tuple):
 	def type(self) -> str:
 		'''session type, version 2.0 only, (e.g. IVS-R4)'''
 		if self[1] is None:
-			return type_of(self.name, self[0], self[10])
+			return type_of(self[0])
 		return self[1]
 
 	date: dt.date = _PROPERTY(2, 'session start time')
@@ -311,12 +317,13 @@ class Session(tuple):
 			if duration := line[6].strip() or None:
 				dh, dm = line[6].split(':')
 				duration = dt.timedelta(0, 3600 * int(dh) + 60 * float(dm))
-			if (st := line[10].strip() or None) and len(st) == 8:
-				try:
-					st = int(st[:4]), int(st[4:6]), int(st[6:8])
-					st = dt.date(*st)
-				except ValueError:
-					pass
+			if st := line[10].strip() or None:
+				if len(st) == 8:
+					try:
+						st = int(st[:4]), int(st[4:6]), int(st[6:8])
+						st = dt.date(*st)
+					except ValueError:
+						pass
 			delay_str = line[13].strip()
 			return cls(
 				code,                                   # code
@@ -658,122 +665,6 @@ class Master(collections.abc.MutableMapping):
 			rows.append('|' + row + '|\n')
 		# concatenate sections
 		return magic + title + update + head + ''.join(rows) + sep + magic
-
-RE_TYPES: Iterable[Tuple[str, re.Pattern]] = [
-	('INT-TEST', r'in\d{3}-\d{3},[eltw]\d*,.*'),
-	('INT-RD', r'r&dint\d,.*'),
-	('INTENSIVE', r'int.*'),
-	('IVS-INT1', r'in1\d\d-\d{3},[aikmq]\d{5},xu'),
-	(r'IVS-INT\1', r'in([239]).*'),
-	('IVS-INTI', r'ini\d\d-\d{3},ii\d{4},xz'),
-	('INT-SOUTH', r'si\d\d-\d{3},z\d*,mh'),
-	('VGOS-INT', r'vgos-\d*,v\d*,vi'),
-	('VGOS-INT2', r'vg2.*,s.*'),
-	(r'VGOS-INT-\1', r'vgos-([bc]).*'),
-	('VGOS-YG', r'vgyg.*'),
-	('VGOS-INT-TST', r'vgost.*'),
-	('VGOS-EARLY', r'vgos1[56].*'),
-	('VLBA-INT4', r'in4\d\d-\d{3},[bnop]\d*,.*'),
-	('VLBA-INT5', r'in5\d\d-\d{3},[^t]\d*,.*'),
-	('IVS-CN', r'ivs-cn.*'),
-	('IVS-CRDS', r'ivs-crds?.*'),
-	('IVS-CRF', r'ivs-crf\d.*'),
-	(r'IVS-\1', r'ivs-(crfs|crms).*'),
-	('IVS-E3', r'ivs-e3.*'),
-	('IVS-OHIG', r'ivs-ohi?g.*'),
-	(r'IVS-R\1', r'ivs-r([14])\d{3,4},r\1\d{3,4},x.?'),
-	('IVS-RD', r'ivs-r&d.*'),
-	('IVS-SUR', r'ivs-sur.*'),
-	('IVS-T2', r'ivs-t2.*'),
-	('NEOS-RAPID', r'neos-[ab].*'),
-	('VGOS-RAPID', r'vgos-o\d*,vo\d*,vg'),
-	('VGOS-RD', r'vgos-r&d\d*,vr\d*,.*'),
-	(r'VGOS-\1', r'vgos-(m|p)\d.*'),
-	('VGOS-S', r'vgos-s\d{4}.*'),
-	('VGOS-T', r'vgos-t\d.*'),
-	('VGOS-TEST', r'vgos-t\d*,vt\d*,.*'),
-	('VLBA-CRF', r'u[a-z]\d{3}[a-z]+\d*,.*'),
-	('VLBA-RD', r'vlba\d+.*,rd?v\d*,.*|rdv.*'),
-	(r'\1', r'(a(ov|psg|pt|ri83|strom|td|us(sngl|tral|-(ast|geo|hob|mix)))).*'),
-	('AUST', r'aust\d.*'),
-	(r'\1', r'''(
-		bb023|be(10|rm)|bf(071|90)|bg219|bk(124|130)|bl(115|122)|
-		bp(110|118|125|133)|br079|brest-1|bw025
-	).*'''),
-	('BONN-RD', r'bonn-r&d.*'),
-	('C-ASIA', r'c-asia.*'),
-	('CALIFORNIA', r'califrnia.*'),
-	('CARNSTY', r'carnsty.*'),
-	('CDP', r'cd[op].*'),
-	(r'\1', r'(cg|cont-m|cont95).*'),
-	('CONT96', r'cont96-.*'),
-	('CONT02', r'cont02\d\d,c02\d\d,xa'),
-	('CONT05', r'cont05\d\db?,c05\d\db?,x[ab]'),
-	(r'\1', r'(cont(08))\d\d,c\2\d\d,xa'),
-	('CONT17', r'cont[bv]?17\d\d,.*'),
-	('CORE', r'core?-.*'),
-	(r'\1', r'(crf|crimea|crl|dsn|e\.atl|e\.pac(?=if)|east-pac|europe).*'),
-	('EUROPE-RD', r'eurr&d-.*'),
-	('EU-VGOS', r'euvgos-.*'),
-	('EU-VGOS-RD', r'euvg-r&d.*'),
-	('EU-VGOS-TEST', r'evgos-t.*'),
-	('EXT-RD', r'ext-r&d.*'),
-	('FD-TIES', r'fd-ties.*'),
-	('GBT-TIE', r'gb[-t].*'),
-	('GEO-VLBA', r'geo-?vlba.*'),
-	('GEO-CAT', r'geoca?t.*'),
-	('GEODETIC', r'geodetic.*'),
-	('GGAO-RD', r'ggao-r&?d.*'),
-	('GLOBAL', r'global.*'),
-	('GLOBAL-TRF', r'glo?bl-trf.*'),
-	(r'\1', r'(gldn-glbl|gnut|gorf|grasse|grav01|gsfc|gsi).*'),
-	('HAWAII-TIE', r'haw.*'),
-	('HD-SURVEY', r'hd-survey.*'),
-	('HH-45-TIE', r'hh-45tie.*'),
-	('HK-TIE', r'hk-tie.*'),
-	('HOHENFRG', r'hohnfrg.*'),
-	(r'\1', r'(hw-tie|iris-a|iris-p|iris-s|iya2009|jade).*'),
-	('JAPAN-TIE', r'ja?pa?n-tie.*'),
-	(r'\1', r'(jaxa|jeg)-.*'),
-	(r'\1', r'(jms|jpl83|jupiter|k4-tie|kash-nobey).*'),
-	('KASH-MOJ', r'kashmoj.*'),
-	(r'\1', r'(kashima|ksp|lba-v).*'),
-	('LOW-ELEV', r'low-el.*'),
-	(r'\1', r'(mars|merit)-.*'),
-	('METSAHOVI', r'metsovi-.*'),
-	(r'\1', r'(mika|mini-cont17).*'),
-	('MOJ-TIES', r'mo.{0,3}-tie.*'),
-	('MVEUR', r'mveur-.*'),
-	('NAPS', r'naps.*'),
-	('NAVEX', r'navy?ex.*'),
-	(r'\1', r'(navint|navnet|ncmn|net|nj2|nordic|north-atl|north-pac|ontie).*'),
-	('ONSALA-TIE', r'ons.*'),
-	('PACIFIC', r'pacific.*'),
-	('PHASE-DELAY', r'phse?-?d.*'),
-	('POLARIS', r'pola.*'),
-	('POLARIZATION', r'polrz.*'),
-	(r'\1', r'(ppm|quake).*'),
-	('REF-FRAME', r'[ref-]{,4}frame.*'),
-	('RD', r'r&d.*'),
-	('RD-94', r'rd94.*'),
-	('RU-E', r'ru-e.*'),
-	('S.ATL', r's\.?atlanti?c.*'),
-	('S2IMAG', r's2imag.*'),
-	('SEATTLE-90', r'seatle-90.*'),
-	(r'\1', r'(seshan-91|shawe90).*'),
-	('SHS', r'sh-?s-?\d\d.*'),
-	(r'\1', r'(south-rf|south-a|south(?=-?\d)|sth-atl|sth-trf).*'),
-	('SURVEY', r'su[rv].*'),
-	(r'\1', r'(suwon|syowa|tanamilba|tau28|tc-quake|tja13a).*'),
-	('TRANS-ASIA', r'tra?ns-asia.*'),
-	('TRANS-ATL', r'tran?s-atl.*'),
-	('TRANS-PAC', r'tra?ns-pac.*'),
-	('TROMSO', r'tromso.*'),
-	(r'\1', r'(tswz|ussuriisk|v230|vega|vggk|vie-proj|vla|vlba|w\.atl).*'),
-	('W.PAC', r'w\.pacif.*'),
-	(r'\1', r'(waps|wesk|west-pac|wties|yellow|yump|x).*')
-]
-RE_TYPES = [(t, re.compile(rf'^(?:{r})$', re.I | re.X)) for t, r in RE_TYPES]
 
 def show_read_path(path: str):
 	'''Show path for file being read'''
