@@ -684,8 +684,10 @@ class Table(pandas.DataFrame):
 					heads.append(f'{name:>{width}}')
 				# string column
 				elif numpy.issubdtype(col.dtype, object):
-					width = max(width, max(map(len, col)))
-					cols.append([f'{v:{width}}' for v in col])
+					width = max(width, max(len(i or '') for i in col))
+					cols.append([
+						f'{v:{width}}' if v else '-' * width for v in col
+					])
 					heads.append(f'{name:{width}}')
 				# numeric column
 				else:
@@ -887,7 +889,7 @@ class Report(collections.abc.MutableMapping):
 		all_stations = vlbi.stations.Stations(*all_stations, verbose=verbose)
 		stations = {}
 		for id in set(master.stations) | set(fringes.stations) | vex_stations:
-			name = mk4 = '--------', '-'
+			name = mk4 = None
 			if id in fringes.stations:
 				st = fringes.stations[id]
 				name, mk4 = st.name, st.mk4id
@@ -991,7 +993,7 @@ class Report(collections.abc.MutableMapping):
 		ss = sorted(stations.values())
 		sections['STATIONS'] = Table(data={
 			'station': [i.id for i in ss],
-			'name': [catmap.stn[i.name] for i in ss],
+			'name': [i.name and catmap.stn[i.name] for i in ss],
 			'mk4': [i.mk4 for i in ss]
 		}, legend={
 			'station': '2-char station ID',
