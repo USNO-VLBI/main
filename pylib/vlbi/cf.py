@@ -25,7 +25,7 @@ import sys
 CHAR_ARRAY_TOKENS = {'freqs'}
 STR_ARRAY_TOKENS = {'samplers'}
 INF = float('inf')
-RE_CHAN = re.compile(r'^[a-zA-Z_%]$')
+RE_CHAN = re.compile(r'^[a-zA-Z_%][+-]?$')
 RE_COMMENT = re.compile(r'\*[^\n]*')
 RE_TOKEN = re.compile(r'<>|[<>()]|[^<>()\s]+')
 SAME_AS_START = object()
