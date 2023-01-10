@@ -31,6 +31,7 @@ from typing import NamedTuple
 import argparse
 import collections
 import collections.abc
+import errno
 import io
 import itertools
 import os
@@ -68,11 +69,13 @@ _IS_INPUT = re.compile(r'.*\.input$', re.I).match
 _R = r'(.*/)?master\d\d(?:\d\d)?(?:-[^/]*)?(?<!notes)\.txt$'
 _IS_MASTER = re.compile(_R, re.I).match
 _IS_OVEX, _IS_VEX = (re.compile(rf'.*\.{o}vex$').match for o in ['o', ''])
-_R = rb'^(\s*%\s*CORRELATOR_REPORT_FORMAT\b|\+HEADER\s*$)'
-_IS_REPORT_CONTENT = re.compile(_R, re.I | re.M).search
+_R = rb'^([ \t]*%\s*CORRELATOR_REPORT_FORMAT\b|\+HEADER\s*$).*'
+_IS_REPORT_CONTENT = re.compile(_R, re.I | re.M | re.S).search
 _R = r'(?:.*/)?[a-zA-Z0-9$%]{2}\.[A-Z]\.[0-9]*\.(?:[A-Z0-9]{6}|[a-z{][a-z]{5})$'
 _IS_ROOT_PATH = re.compile(_R).match
-_IS_SKD = re.compile(r'.*\.skdf$', re.I).match
+_R = rb'^[ \t]*Session[ \t]+(\S+)[ \t]*$'
+_IS_SESSION_LINE = re.compile(_R, re.I | re.M).search
+_IS_SKD = re.compile(r'.*\.skd$', re.I).match
 _IS_SNR = re.compile(r'.*\.snr$', re.I).match
 _R = r'(?:.*/?)(?:stations.m|m.stations|ns-codes.txt)$'
 _IS_STATIONS = re.compile(_R, re.I).match
@@ -82,6 +85,7 @@ _RE_PASSWD_PARENS = re.compile(r'\([^()]*\)|\[[^[\]]*\]|\{[^{}]*\}|<[^<>]*>')
 _RE_READ_DASHES = re.compile(r'^ *---+ *$', re.M)
 _RE_READ_SECTION = re.compile(r'^\+(\w.*)\n((?:(?!\+).*\n)*)', re.M)
 _RE_READ_STRIP = re.compile(r'^ *(\*.*|---+ *|)?$\n?', re.M)
+_RE_REPORT_EXTS = re.compile(r'(\.(corr|rpt|tgz|tar|gz|bz))*$', re.I)
 _RE_TRAILING_WS = re.compile(r'[ \t]+$', re.M)
 _RE_VALUE_SEP = re.compile(r'(?: *[,\n] *)+')
 _RE_VEX_EPOCH = r'\s*(\d{4})y(?:(\d+)d)?(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?\s*$'
@@ -160,6 +164,36 @@ def read_path(path: str) -> str:
 	'''Read a text file'''
 	with open(path) as f:
 		return f.read()
+
+class ReportText(NamedTuple):
+	'''Report filename and text'''
+	filename: str
+	text: str
+
+def read_report_text(path: str, keep_looking_for_name=True) -> ReportText:
+	'''Read report filename and text from a .rpt, .txt, .corr, or .tgz file'''
+	if path.lower().endswith(('.tgz', '.tar.gz', '.tar.bz')):
+		with tarfile.open(path) as tarball:
+			text = filename = None
+			for info in tarball:
+				if info.isreg():
+					if info.path.lower().endswith('.hist'):
+						with tarball.extractfile(info) as file:
+							if r := _IS_REPORT_CONTENT(file.read()):
+								text = r[0].decode(errors='replace')
+					elif info.path.lower().endswith('.wrp'):
+						print(f'wrap file: {info.path}')
+						with tarball.extractfile(info) as file:
+							if r:= _IS_SESSION_LINE(file.read()):
+								filename = r[1].decode(errors='replace').lower()
+				if (filename or not keep_looking_for_name) and text is not None:
+					return ReportText(filename + '.corr', text)
+		if text is None:
+			raise FileNotFoundError(errno.ENOENT, 'No report found', path)
+	else:
+		text = read_path(path)
+	filename = os.path.basename(path).lower()
+	return (_RE_REPORT_EXTS.sub('', filename) or filename) + '.corr', text
 
 class EOP(NamedTuple):
 	'''Earth Orientation Parameters'''
@@ -684,10 +718,9 @@ class Table(pandas.DataFrame):
 					heads.append(f'{name:>{width}}')
 				# string column
 				elif numpy.issubdtype(col.dtype, object):
-					width = max(width, max(len(i or '') for i in col))
-					cols.append([
-						f'{v:{width}}' if v else '-' * width for v in col
-					])
+					col = ['-' if i is None else i for i in col]
+					width = max(width, max(map(len, col)))
+					cols.append([f'{v:{width}}' for v in col])
 					heads.append(f'{name:{width}}')
 				# numeric column
 				else:
@@ -960,7 +993,9 @@ class Report(collections.abc.MutableMapping):
 		for bl_fset, bl_tup in baselines.items():
 			bl_name = '-'.join(bl_tup)
 			for chan in dropped.get(bl_fset, ()):
-				if all(chan not in drop_chans.get(id, ()) for id in bl_tup):
+				if all(
+					chan.name not in drop_chans.get(id, ()) for id in bl_tup
+				):
 					drop_chans.setdefault(bl_name, set()).add(chan.name)
 		## HEADER
 		sections = {'HEADER': {
@@ -1015,24 +1050,19 @@ class Report(collections.abc.MutableMapping):
 				notes.append((s.id, msg))
 				continue
 			# more qcode sorting
-			qq = {}
+			q0, interest0 = '_', float('inf')
 			for (t, _, bl, band), q in qcodes.items():
 				if s.id in bl:
-					if q == 'N':
-						qq[t] = 'N'
-					elif q == '-' and qq.get(t) != 'N':
-						qq[t] = '-'
-					elif q == '0' and qq.get(t) not in ('N', '-'):
-						qq[t] = '0'
-					else:
-						qq[t] = qq.get(t, '_')
-			qq = dict(sorted(qq.items()))
-			if all(q == '-' for q in qq.values()):
-				notes.append((s.id, 'Minused out'))
-			elif all(q in 'N-' for q in qq.values()):
-				notes.append((s.id, 'Not correlated'))
-			elif all(q in '0-N' for q in qq.values()):
-				notes.append((s.id, 'No fringes found'))
+					interest = {'0': 1, 'N': 2, '-': 3}.get(q, 0)
+					if interest < interest0:
+						interest0 = interest
+						q0 = q
+			if (msg := {
+				'-': 'Minused out',
+				'N': 'Not correlated',
+				'0': 'No fringes found'
+			}.get(q0)):
+				notes.append((s.id, msg))
 			elif scans := sorted(
 				scan for scan in vex_scans.values() if s.id in scan.stations
 			):
@@ -1053,7 +1083,7 @@ class Report(collections.abc.MutableMapping):
 			if s.id in drop_chans:
 				msg = 'Removed channel from fringe fitting: '
 				notes.append((s.id, msg + ', '.join(drop_chans[s.id])))
-			if len(cc := sorted(vex_clocks[s.id])) > 1:
+			if s.id in vex_clocks and len(cc := sorted(vex_clocks[s.id])) > 1:
 				for i in range(len(cc) - 1):
 					dt = f'{1e6 * (cc[i + 1].offset - cc[i].offset):0.3f} usec'
 					t = f'{cc[i + 1].valid:%Y-%j-%H%M%S}'
@@ -1425,16 +1455,11 @@ def main():
 	a = A.parse_args()
 	# extract from VGOSDB
 	if len(a.path) == 1 and a.path[0].lower().endswith(('.tgz', '.tar.gz')):
-		with tarfile.open(a.path[0]) as tarball:
-			for info in tarball:
-				if info.isreg() and info.path.lower().endswith('.hist'):
-					with tarball.extractfile(info) as file:
-						if _IS_REPORT_CONTENT(text := file.read()):
-							text = text.decode(errors='replace')
-							break
-			else:
-				vlbi.error(f'No report found in {shlex.quote(a.path)}')
-				sys.exit()
+		try:
+			text = read_report_text(a.path[0], False)[1]
+		except IOError as e:
+			vlbi.error(f'{e.strerror}: {e.filename}')
+			sys.exit()
 	else:
 		# build from scratch
 		text = str(Report.build(
