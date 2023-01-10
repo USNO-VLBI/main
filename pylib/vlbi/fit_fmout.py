@@ -97,8 +97,12 @@ UNITS = {
 	'micro': 1e-6, 'mic': 1e-6, 'u': 1e-6, 'nano': 1e-9, 'n': 1e-9
 }
 
-is_log = lambda p: len(os.path.basename(p)) >= 6 and p.lower().endswith('.log')
 is_sched = lambda p: p.lower().endswith(('.vex', '.ovex', '.skd'))
+
+def is_log(path: str) -> bool:
+	'''test if path could be a station log'''
+	p = os.path.basename(path).lower()
+	return len(p) >= 6 and p.endswith('.log') and p.count('.') == 1
 
 def info(text: str, verbose: bool = True):
 	'''Show verbose info'''
@@ -454,7 +458,7 @@ def fit_fmout(
 		): (src, tgt) for src, tgt in clocks}
 		# Skip if not a field system log
 		if not prefs:
-			warn(f'no clock information found in {log}')
+			warn(f'no clock information found for {station} in {log}')
 			continue
 		src, tgt = prefs[min(prefs)]
 		out = clocks[(src, tgt)]
