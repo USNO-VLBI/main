@@ -613,7 +613,7 @@ def root2int(code: str) -> str:
 
 def int2root(i: int, legacy: bool = False) -> str:
 	'''Convert (usually 4 sec) units since epoch to HOPS Mk4 root code
-	
+
 	* `legacy` for `a-z` encoding instead of `0-9A-Z` encoding
 	'''
 	if legacy:
@@ -1028,7 +1028,7 @@ def save_ps(
 	zoom: float = None, verbose: Union[bool, str] = False
 ):
 	'''Save PostScript to file with a particular zoom level
-	
+
 	`verbose` doubles as source file name if provided as a `str`
 	'''
 	source = verbose + ' -> ' if isinstance(verbose, str) else ''
@@ -1095,15 +1095,15 @@ def show_ps(
 	`ps` treats `str` as path and `bytes` or `bytearray` as content
 	'''
 	paths, i = [], 0
-	with tempfile.TemporaryDirectory('.tmp', 'mk4.'):
+	with tempfile.TemporaryDirectory('.tmp', 'mk4.') as d:
 		# write temp file(s)
 		for data in [ps] if isinstance(ps, (str, bytes, bytearray)) else ps:
 			if isinstance(data, str):
 				paths.append(data)
 			else:
-				with open(f'{i}.ps', 'wb') as f:
+				with open(f'{d}/{i}.ps', 'wb') as f:
 					f.write(data)
-				paths.append(f'{i}.ps')
+				paths.append(f'{d}/{i}.ps')
 				i += 1
 		# use open command on Mac OS
 		if sys.platform == 'darwin':
