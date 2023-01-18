@@ -68,7 +68,8 @@ _IS_CF = re.compile(r'(?:^|\b|_)cf(?:$|\b|_)', re.I).search
 _IS_INPUT = re.compile(r'.*\.input$', re.I).match
 _R = r'(.*/)?master\d\d(?:\d\d)?(?:-[^/]*)?(?<!notes)\.txt$'
 _IS_MASTER = re.compile(_R, re.I).match
-_IS_OVEX, _IS_VEX = (re.compile(rf'.*\.{o}vex$').match for o in ['o', ''])
+_IS_VEX = re.compile(rf'.*\.vex(\.obs)?$').match
+_IS_OVEX = re.compile(rf'.*\.ovex$').match
 _R = rb'^([ \t]*%\s*CORRELATOR_REPORT_FORMAT\b|\+HEADER\s*$).*'
 _IS_REPORT_CONTENT = re.compile(_R, re.I | re.M | re.S).search
 _R = r'(?:.*/)?[a-zA-Z0-9$%]{2}\.[A-Z]\.[0-9]*\.(?:[A-Z0-9]{6}|[a-z{][a-z]{5})$'
@@ -182,12 +183,11 @@ def read_report_text(path: str, keep_looking_for_name=True) -> ReportText:
 							if r := _IS_REPORT_CONTENT(file.read()):
 								text = r[0].decode(errors='replace')
 					elif info.path.lower().endswith('.wrp'):
-						print(f'wrap file: {info.path}')
 						with tarball.extractfile(info) as file:
 							if r:= _IS_SESSION_LINE(file.read()):
 								filename = r[1].decode(errors='replace').lower()
 				if (filename or not keep_looking_for_name) and text is not None:
-					return ReportText(filename + '.corr', text)
+					return ReportText((filename or 'report') + '.corr', text)
 		if text is None:
 			raise FileNotFoundError(errno.ENOENT, 'No report found', path)
 	else:
@@ -810,7 +810,7 @@ class Report(collections.abc.MutableMapping):
 	* `source` is either a path to a report file, or a map of the content
 	'''
 
-	def __init__(self, source: Union[str, Mapping] = ()):
+	def __init__(self, source: Union[str, io.IOBase, Mapping] = ()):
 		self._data = {}
 		if isinstance(source, str):
 			self.read(source)
@@ -829,14 +829,22 @@ class Report(collections.abc.MutableMapping):
 		return msg + (' (end)' if t1 == end else '')
 
 	@classmethod
-	def read(cls, path: str) -> 'Report':
-		'''Read a report from file path'''
+	def read(cls, path: Union[str, io.IOBase]) -> 'Report':
+		'''Read a report from file'''
 		# read file
+		if isinstance(path, (str, bytes)):
+			with open(path) as f:
+				full_text = f.read()
+		else:
+			full_text = path.read()
+		return cls.reads(full_text)
+
+	@classmethod
+	def reads(cls, text: str) -> 'Report':
+		'''Read a report from text'''
 		result = cls()
-		with open(path) as f:
-			full_text = f.read()
 		# split into sections
-		for section, text in _RE_READ_SECTION.findall(full_text):
+		for section, text in _RE_READ_SECTION.findall(text):
 			# text
 			if section.endswith('FILE') or section.endswith('TEXT'):
 				result[section] = text
@@ -892,6 +900,8 @@ class Report(collections.abc.MutableMapping):
 				else:
 					vex_scans[name] = scan
 			session = vex.session or session
+		if not session:
+			vlbi.error('No session name from VEX file', exit=errno.ENOENT)
 		## read master file
 		master = vlbi.master.get_session(
 			session, *find_files(all_paths, _IS_MASTER),
@@ -994,9 +1004,9 @@ class Report(collections.abc.MutableMapping):
 			bl_name = '-'.join(bl_tup)
 			for chan in dropped.get(bl_fset, ()):
 				if all(
-					chan.name not in drop_chans.get(id, ()) for id in bl_tup
+					chan not in drop_chans.get(id, ()) for id in bl_tup
 				):
-					drop_chans.setdefault(bl_name, set()).add(chan.name)
+					drop_chans.setdefault(bl_name, set()).add(chan)
 		## HEADER
 		sections = {'HEADER': {
 			'SESSION': session,
@@ -1026,6 +1036,15 @@ class Report(collections.abc.MutableMapping):
 		})
 		## STATIONS
 		ss = sorted(stations.values())
+		for i in ss:
+			if not i.name:
+				msg = f'missing name for station {i.id}'
+				msg += ' (do you you need an ns-codes.txt file?)'
+				vlbi.warn(msg)
+			if not i.mk4:
+				msg = f'missing Mark4 ID for station {i.id}'
+				msg += ' (do you you need an m.stations or stations.m file?)'
+				vlbi.warn(msg)
 		sections['STATIONS'] = Table(data={
 			'station': [i.id for i in ss],
 			'name': [i.name and catmap.stn[i.name] for i in ss],
@@ -1458,8 +1477,7 @@ def main():
 		try:
 			text = read_report_text(a.path[0], False)[1]
 		except IOError as e:
-			vlbi.error(f'{e.strerror}: {e.filename}')
-			sys.exit()
+			vlbi.error(f'{e.strerror}: {e.filename}', exit=e.errno)
 	else:
 		# build from scratch
 		text = str(Report.build(

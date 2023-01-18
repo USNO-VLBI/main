@@ -495,6 +495,8 @@ class Master(collections.abc.MutableMapping):
 		for line in source:
 			if isinstance(line, Session):
 				self._sessions[line.code] = line
+			if line.lstrip().startswith('#'):
+				continue
 			elif '|' in line:
 				try:
 					s = Session.from_line(line, year)
