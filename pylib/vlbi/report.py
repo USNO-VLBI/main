@@ -68,8 +68,8 @@ _IS_CF = re.compile(r'(?:^|\b|_)cf(?:$|\b|_)', re.I).search
 _IS_INPUT = re.compile(r'.*\.input$', re.I).match
 _R = r'(.*/)?master\d\d(?:\d\d)?(?:-[^/]*)?(?<!notes)\.txt$'
 _IS_MASTER = re.compile(_R, re.I).match
-_IS_VEX = re.compile(rf'.*\.vex(\.obs)?$').match
-_IS_OVEX = re.compile(rf'.*\.ovex$').match
+_IS_VEX = re.compile(r'.*\.vex(\.obs)?$').match
+_IS_OVEX = re.compile(r'.*\.ovex$').match
 _R = rb'^([ \t]*%\s*CORRELATOR_REPORT_FORMAT\b|\+HEADER\s*$).*'
 _IS_REPORT_CONTENT = re.compile(_R, re.I | re.M | re.S).search
 _R = r'(?:.*/)?[a-zA-Z0-9$%]{2}\.[A-Z]\.[0-9]*\.(?:[A-Z0-9]{6}|[a-z{][a-z]{5})$'
@@ -889,8 +889,9 @@ class Report(collections.abc.MutableMapping):
 		):
 			vlbi.info(f'reading {shlex.quote(path)}', verbose)
 			vex = VEX.read(path)
-			for station, clocks in vex.clocks.items():
-				vex_clocks.setdefault(station, set()).update(clocks)
+			if not path.lower().endswith('.ovex'):
+				for station, clocks in vex.clocks.items():
+					vex_clocks.setdefault(station, set()).update(clocks)
 			for name, scan in vex.scans.items():
 				if name in vex_scans:
 					ss = vex_scans[name].stations
