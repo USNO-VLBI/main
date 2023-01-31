@@ -156,7 +156,7 @@ def link_files(
 
 class Meta(typing.NamedTuple):
 	'''Metadata returned from `make_meta`'''
-	start_time: datetime
+	start_time: datetime.datetime
 	session_code: str
 	meta_text: str
 
