@@ -165,6 +165,7 @@ class Stations(collections.abc.MutableMapping):
 					if name.endswith('control'):
 						if os.path.isdir(dir := os.path.join(etc, name)):
 							source.append(dir)
+				source.append('.')
 			else:
 				source = ['.']
 		# expand directories
