@@ -874,6 +874,7 @@ class Report(collections.abc.MutableMapping):
 		corr_patch: str = '', corr_sw: str = '', corr_version: str = '',
 		fringe_patch: str = '', fringe_sw: str = '', fringe_version: str = '',
 		vgosdb_patch: str = '', vgosdb_sw: str = '', vgosdb_version: str = '',
+		drop_chans: bool = True,
 		verbose: bool = False
 	) -> 'Report':
 		'''Build a new report from correlation files and directories
@@ -986,28 +987,30 @@ class Report(collections.abc.MutableMapping):
 		baselines = sorted((tup, fset) for fset, tup in baselines.items())
 		baselines = {fset: tup for tup, fset in baselines}
 		## compile dropped channels
-		used, drop_chans = {}, {}
-		for scan, fringe in fringes.scans.items():
-			use = used.setdefault(scan.bl, set())
-			use.update(i.name for i in fringe.chans if i.mk4)
-		chans = {i.name for i in fringes.chans}
-		dropped = {bl: chans - used for bl, used in used.items()}
-		# find station-wide channel drops
-		for station in fringes.stations:
-			for chan in fringes.chans:
-				if all(
-					station not in bl or chan.name in ch
-					for bl, ch in dropped.items()
-				):
-					drop_chans.setdefault(station, set()).add(chan.name)
-		# find baseline-wide channel drops
-		for bl_fset, bl_tup in baselines.items():
-			bl_name = '-'.join(bl_tup)
-			for chan in dropped.get(bl_fset, ()):
-				if all(
-					chan not in drop_chans.get(id, ()) for id in bl_tup
-				):
-					drop_chans.setdefault(bl_name, set()).add(chan)
+		drop_chans = {}
+		if drop_chans:
+			used = {}
+			for scan, fringe in fringes.scans.items():
+				use = used.setdefault(scan.bl, set())
+				use.update(i.name for i in fringe.chans if i.mk4)
+			chans = {i.name for i in fringes.chans}
+			dropped = {bl: chans - used for bl, used in used.items()}
+			# find station-wide channel drops
+			for station in fringes.stations:
+				for chan in fringes.chans:
+					if all(
+						station not in bl or chan.name in ch
+						for bl, ch in dropped.items()
+					):
+						drop_chans.setdefault(station, set()).add(chan.name)
+			# find baseline-wide channel drops
+			for bl_fset, bl_tup in baselines.items():
+				bl_name = '-'.join(bl_tup)
+				for chan in dropped.get(bl_fset, ()):
+					if all(
+						chan not in drop_chans.get(id, ()) for id in bl_tup
+					):
+						drop_chans.setdefault(bl_name, set()).add(chan)
 		## HEADER
 		sections = {'HEADER': {
 			'SESSION': session,
@@ -1201,7 +1204,7 @@ class Report(collections.abc.MutableMapping):
 		for cc in codes.values():
 			cc['total'] = sum(cc.values())
 		codes = {
-			''.join(stations[id].mk4 for id in baselines[bl]) + ':' + band: v
+			''.join(stations[id].mk4 or '-' for id in baselines[bl]) + ':' + band: v
 			for (bl, band), v in codes.items()
 		}
 		codes['total'] = {
@@ -1470,6 +1473,10 @@ def main():
 		help='VGOSDB software patch description (default $VGOSDBPATCH)'
 	)
 	A.add_argument(
+		'--no-drop-channels', action='store_true',
+		help='assume that no channels have been dropped (don\'t try to check)'
+	)
+	A.add_argument(
 		'-v', '--verbose', action='store_true', help='show details on STDERR'
 	)
 	a = A.parse_args()
@@ -1490,6 +1497,7 @@ def main():
 			fringe_patch=a.fringe_patch,
 			vgosdb_sw=a.vgosdb_sw, vgosdb_version=a.vgosdb_version,
 			vgosdb_patch=a.vgosdb_patch,
+			drop_chans=(not a.no_drop_channels),
 			verbose=a.verbose
 		))
 	if a.out:
