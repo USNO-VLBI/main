@@ -159,7 +159,15 @@ class Stations(collections.abc.MutableMapping):
 		'''
 		# default sources
 		if not source:
-			source = [os.path.join(vlbi.ROOT, 'etc'), '.']
+			if os.path.isdir(etc := os.path.join(vlbi.ROOT, 'etc')):
+				source = [etc]
+				for name in os.listdir(etc):
+					if name.endswith('control'):
+						if os.path.isdir(dir := os.path.join(etc, name)):
+							source.append(dir)
+			else:
+				source = ['.']
+			print('here')
 		# expand directories
 		for src in source:
 			if isinstance(src, Station):
