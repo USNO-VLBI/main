@@ -167,7 +167,6 @@ class Stations(collections.abc.MutableMapping):
 							source.append(dir)
 			else:
 				source = ['.']
-			print('here')
 		# expand directories
 		for src in source:
 			if isinstance(src, Station):
