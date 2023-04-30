@@ -987,8 +987,8 @@ class Report(collections.abc.MutableMapping):
 		baselines = sorted((tup, fset) for fset, tup in baselines.items())
 		baselines = {fset: tup for tup, fset in baselines}
 		## compile dropped channels
-		drop_chans = {}
-		if drop_chans:
+		do_drop_chans, drop_chans = drop_chans, {}
+		if do_drop_chans:
 			used = {}
 			for scan, fringe in fringes.scans.items():
 				use = used.setdefault(scan.bl, set())
