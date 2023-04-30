@@ -28,6 +28,7 @@ from datetime import datetime, timedelta
 from io import BytesIO
 from typing import Any, Callable, Iterable, Iterator, Mapping, Set, Tuple, Union
 import argparse
+import distutils.spawn
 import os
 import re
 import shlex
@@ -1105,8 +1106,11 @@ def show_ps(
 					f.write(data)
 				paths.append(f'{d}/{i}.ps')
 				i += 1
-		# use open command on Mac OS
-		if sys.platform == 'darwin':
+		# use open command on Mac OS without GhostScript
+		if (
+			sys.platform == 'darwin'
+			and not distutils.spawn.find_executable('gs')
+		):
 			subprocess.run(['open', '-W'] + paths, check=1)
 			return
 		# use GhostScript otherwise
@@ -1261,6 +1265,26 @@ def main():
 		'  {dir}       Mk4 file directory\n'
 		'  {bn}        Mk4 file basename\n'
 	))
+	sub.add_argument(
+		'--png', action='store_const', dest='save_as', const='{name}.png',
+		help='same as --save-as \'{name}\.png'
+	)
+	sub.add_argument(
+		'--jpg', action='store_const', dest='save_as', const='{name}.jpg',
+		help='same as --save-as \'{name}\.jpg'
+	)
+	sub.add_argument(
+		'--jpeg', action='store_const', dest='save_as', const='{name}.jpeg',
+		help='same as --save-as \'{name}\.jpeg'
+	)
+	sub.add_argument(
+		'--tiff', action='store_const', dest='save_as', const='{name}.tiff',
+		help='same as --save-as \'{name}\.tiff'
+	)
+	sub.add_argument(
+		'--pdf', action='store_const', dest='save_as', const='{name}.pdf',
+		help='same as --save-as \'{name}\.pdf'
+	)
 	grp = sub.add_argument_group('filtering arguments')
 	grp.add_argument(
 		'-B', '-b', type=BASELINE, action='append', metavar='AB:X',
