@@ -432,7 +432,6 @@ class Master(collections.abc.MutableMapping):
 					if year and y != year:
 						continue
 					ll[(st.st_dev, st.st_ino)] = abs(y - y0), y > y0, y, path
-				continue
 			# directory
 			for f in listdir(path, strict):
 				if r := RE_MASTER.match(f):

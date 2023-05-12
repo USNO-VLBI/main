@@ -1,3 +1,11 @@
+## VLBI
+etc/*control
+etc/*master
+etc/m.stations
+etc/stations.m
+etc/ns-codes.txt
+doc/*.html
+
 ## Python
 
 # Byte-compiled / optimized / DLL files

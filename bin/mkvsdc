@@ -209,7 +209,7 @@ def make_meta(
 	line = '# SWIN-ARCHIVE meta data.  Format version  1.01  2020.11.11'
 	out = [line, '# ']
 	out.append(f'exper_name: {exp}')
-	out.append(f'corr_vers:  {corr_vers:d}')
+	out.append(f'corr_vers:  {corr_vers}')
 	names = 'exper_description', 'exper_desc'
 	v = next((v for n in names for v in vex[n] if v), '??')
 	out.append(f'exper_desc: {v}')
@@ -222,14 +222,14 @@ def make_meta(
 	s0, s1 = f'{dt0:%Y.%m.%d_%H:%M:%S}', f'{dt1:%Y.%m.%d_%H:%M:%S}'
 	out.append(f'date_start: {mjd0.days:5d}  {mjd0.seconds:5d}  {s0} UTC')
 	out.append(f'date_stop:  {mjd1.days:5d}  {mjd1.seconds:5d}  {s1} UTC')
-	out.append(f'duration:   {(dt1 - dt0).total_seconds():5d}  sec')
+	out.append(f'duration:   {int((dt1 - dt0).total_seconds()):5d}  sec')
 	out.append(f'num_sta:     {len(stations):-5d} ')
 	out.append(f'num_sou:    {len(sources):-5d} ')
 	out.append(f'stations:   {" ".join(stations)} ')
 	out.append(f'sources:    {" ".join(sorted(sources))} ')
 	out.append(f'polariz:    {" ".join(pols)} ')
-	out.append(f'num_inps:   {len(inputs):d} ')
-	out.append(f'num_files:  {len(others):d} ')
+	out.append(f'num_inps:   {len(inputs)} ')
+	out.append(f'num_files:  {len(others)} ')
 	out.append(f'vex_file:   {os.path.basename(vex_path)} ')
 	out.append(f'v2d_file:   {os.path.basename(v2d)} ')
 	out.append('#')
@@ -272,7 +272,7 @@ def make_vsdc(
 		raise OSError(errno.ENOENT, msg)
 	if verbose:
 		n_input, n_other = len(inputs), 2 + len(others)
-		write(f'found {n_input:d} DiFX input and {n_other:d} other files\n')
+		write(f'found {n_input} DiFX input and {n_other} other files\n')
 		write(f'vex file {shlex.quote(vex)}\n')
 		write(f'v2d file {shlex.quote(v2d)}\n')
 	# prepare VSDC meta file text

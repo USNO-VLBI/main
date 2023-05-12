@@ -70,6 +70,8 @@ _R = r'(.*/)?master\d\d(?:\d\d)?(?:-[^/]*)?(?<!notes)\.txt$'
 _IS_MASTER = re.compile(_R, re.I).match
 _IS_VEX = re.compile(r'.*\.vex(\.obs)?$').match
 _IS_OVEX = re.compile(r'.*\.ovex$').match
+_R = rb'^[ \t]*TIMETAG[ \t]*(\d{4})/(\d\d)/(\d\d)\D?(\d\d):(\d\d):(\d\d)\b'
+_RE_TIMETAG = re.compile(_R, re.I | re.M)
 _R = rb'^([ \t]*%\s*CORRELATOR_REPORT_FORMAT\b|\+HEADER\s*$).*'
 _IS_REPORT_CONTENT = re.compile(_R, re.I | re.M | re.S).search
 _R = r'(?:.*/)?[a-zA-Z0-9$%]{2}\.[A-Z]\.[0-9]*\.(?:[A-Z0-9]{6}|[a-z{][a-z]{5})$'
@@ -78,8 +80,8 @@ _R = rb'^[ \t]*Session[ \t]+(\S+)[ \t]*$'
 _IS_SESSION_LINE = re.compile(_R, re.I | re.M).search
 _IS_SKD = re.compile(r'.*\.skd$', re.I).match
 _IS_SNR = re.compile(r'.*\.snr$', re.I).match
-_R = r'(?:.*/?)(?:stations.m|m.stations|ns-codes.txt)$'
-_IS_STATIONS = re.compile(_R, re.I).match
+_IS_STATIONS = re.compile(r'(?:.*/)?(?:stations.m|m.stations)$', re.I).match
+_IS_NSCODES = re.compile(r'(?:.*/)?ns-codes.txt$', re.I).match
 _RE_DATETIME = re.compile(r'-$|\d{4}-\d{3}-\d{4}(?:\d\d)?$')
 _RE_LEGEND = re.compile(r'^\s*\*\s*(\S+)\s+(\S.*)', re.M)
 _RE_PASSWD_PARENS = re.compile(r'\([^()]*\)|\[[^[\]]*\]|\{[^{}]*\}|<[^<>]*>')
@@ -170,30 +172,41 @@ class ReportText(NamedTuple):
 	'''Report filename and text'''
 	filename: str
 	text: str
+	timestamp: datetime
 
 def read_report_text(path: str, keep_looking_for_name=True) -> ReportText:
 	'''Read report filename and text from a .rpt, .txt, .corr, or .tgz file'''
 	if path.lower().endswith(('.tgz', '.tar.gz', '.tar.bz')):
 		with tarfile.open(path) as tarball:
-			text = filename = None
+			text = filename = timestamp = None
 			for info in tarball:
 				if info.isreg():
 					if info.path.lower().endswith('.hist'):
 						with tarball.extractfile(info) as file:
-							if r := _IS_REPORT_CONTENT(file.read()):
+							data = file.read()
+							if r := _IS_REPORT_CONTENT(data):
 								text = r[0].decode(errors='replace')
+								if r := _RE_TIMETAG.search(data):
+									timestamp = datetime(*map(int, r.groups()))
+								else:
+									mtime = info.mtime
+									timestamp = datetime.fromtimestamp(mtime)
 					elif info.path.lower().endswith('.wrp'):
 						with tarball.extractfile(info) as file:
 							if r:= _IS_SESSION_LINE(file.read()):
 								filename = r[1].decode(errors='replace').lower()
 				if (filename or not keep_looking_for_name) and text is not None:
-					return ReportText((filename or 'report') + '.corr', text)
+					filename = (filename or 'report') + '.corr'
+					return ReportText(filename, text, timestamp)
 		if text is None:
 			raise FileNotFoundError(errno.ENOENT, 'No report found', path)
 	else:
-		text = read_path(path)
+		with open(path) as f:
+			text = f.read()
+			timestamp = datetime.fromtimestamp(os.fstat(f.fileno).st_mtime)
 	filename = os.path.basename(path).lower()
-	return (_RE_REPORT_EXTS.sub('', filename) or filename) + '.corr', text
+	filename = (_RE_REPORT_EXTS.sub('', filename) or filename) + '.corr'
+	return ReportText(filename, text, timestamp)
 
 class EOP(NamedTuple):
 	'''Earth Orientation Parameters'''
@@ -907,7 +920,8 @@ class Report(collections.abc.MutableMapping):
 		## read master file
 		master = vlbi.master.get_session(
 			session, *find_files(all_paths, _IS_MASTER),
-			near=next(iter(vex_scans.values())).start.year
+			near=next(iter(vex_scans.values())).start.year,
+			callback=lambda p: vlbi.info(f'reading {shlex.quote(p)}', verbose)
 		)
 		## read catmap
 		if catmap in (True, None):
@@ -931,6 +945,7 @@ class Report(collections.abc.MutableMapping):
 			id for scan in vex_scans.values() for id in scan.stations
 		}
 		all_stations = find_files(all_paths, _IS_STATIONS)
+		all_stations += find_files(all_paths, _IS_NSCODES)
 		all_stations = vlbi.stations.Stations(*all_stations, verbose=verbose)
 		stations = {}
 		for id in set(master.stations) | set(fringes.stations) | vex_stations:
@@ -947,7 +962,7 @@ class Report(collections.abc.MutableMapping):
 			)
 		## read logs
 		regex = re.escape(session)
-		regex = rf'(?:.*/?){session}[.-_]?[a-z0-9$%]{{2}}\.log$'
+		regex = rf'(?:.*/)?{session}[.-_]?[a-z0-9$%]{{2}}\.log$'
 		regex = re.compile(regex, re.I).match
 		fits = vlbi.fit_fmout.fit_fmout(
 			find_files(all_paths, regex), epoch=master.datetime,
