@@ -1316,7 +1316,7 @@ class Report(collections.abc.MutableMapping):
 				text = read_path(path).replace('\t', '  ')
 				for regex, sub, flags in [
 					(r'\s*(#[^\n]*)?$', '', re.M),
-					(r'(?<==|,)(\s*).*/', r'\1', 0),  # strip paths
+					(r'(?<==|,)(\s*)/(\S*/)?', r'\1', 0),  # strip paths
 					(r'^ *EOP\b.*?\{.*?\}\s*', '', re.I | re.M | re.S)
 				]:
 					text = re.sub(regex, sub, text, flags=flags)
