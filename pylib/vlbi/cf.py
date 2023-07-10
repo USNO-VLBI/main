@@ -24,7 +24,6 @@ import sys
 
 CHAR_ARRAY_TOKENS = {'freqs'}
 STR_ARRAY_TOKENS = {'samplers'}
-INF = float('inf')
 RE_CHAN = re.compile(r'^[a-zA-Z_%][+-]?$')
 RE_COMMENT = re.compile(r'\*[^\n]*')
 RE_TOKEN = re.compile(r'<>|[<>()]|[^<>()\s]+')
@@ -66,7 +65,7 @@ def utc_epoch(delta: datetime.timedelta) -> str:
 	h = min(99, s // 3600)
 	s -= 3600 * h
 	m = min(99, s // 60)
-	return '%03d-%02d%02d%02d' % (d, h, m, min(99, s - 60 * m))
+	return f'{d:03d}-{h:02d}{m:02d}{min(99, s - 60 * m):02d}'
 
 def utc_timedelta(text: str) -> datetime.timedelta:
 	'''Convert CF file UTC epoch text to timedelta from Jan 1st'''
@@ -157,29 +156,10 @@ class AND(Conditions):
 				return False
 		return result
 
-	def str(self, width: int = 70) -> str:
-		'''Convert to CF file string with width target for lines'''
-		# one-line
-		s = (' and '.join(
-			('(%s)' if isinstance(c, OR) else '%s') % c.str(INF) for c in self
-		))
-		if len(s) <= width:
-			return s
-		# multi-line
-		fmt = '(%s)' if isinstance(self[0], OR) else '%s'
-		ss = [fmt % self[0].str(width)]
-		for c in self[1:]:
-			s = ('(%s)' if isinstance(c, OR) else '%s') % c.str(INF)
-			if len(s) <= width - 4:
-				ss.append('and ' + s)
-			else:
-				s = '\n  '.join(c.str(width - 2).splitlines())
-				fmt = 'and (\n  %s\n)' if isinstance(c, OR) else 'and\n  %s'
-				ss.append(fmt % s)
-		return '\n'.join(ss)
-
 	def __str__(self) -> str:
-		return self.str()
+		return (' and '.join(
+			(f'({c})' if isinstance(c, OR) else str(c)) for c in self
+		))
 
 class OR(Conditions):
 	'''CF file `or` conditional statement'''
@@ -194,26 +174,8 @@ class OR(Conditions):
 				return True
 		return result
 
-	def str(self, width: int = 70) -> str:
-		'''Convert to CF file string with width target for lines'''
-		# one-line
-		s = ' or '.join(c.str(INF) for c in self)
-		if len(s) <= width:
-			return s
-		# multi-line
-		ss = [self[0].str(width)]
-		for c in self[1:]:
-			s = c.str(INF)
-			if len(s) <= width - 3:
-				ss.append('or ' + s)
-			else:
-				s = '\n  '.join(c.str(width - 2).splitlines())
-				ss.append('or\n  ' + s)
-		return '\n'.join(ss)
-
 	def __str__(self) -> str:
-		return self.str()
-
+		return ' or '.join(map(str, self))
 
 class NOT(Conditions):
 	'''CF file `not` conditional statement'''
@@ -231,31 +193,19 @@ class NOT(Conditions):
 		self._terms.insert(i, x)
 
 	def __repr__(self) -> str:
-		return '%s(%r)' % (self.__class__.__name__, self._terms[0])
+		return f'{self.__class__.__name__}({self._terms[0]!r})'
 
 	def __setitem__(self, i: int, x: Condition):
 		if i != 0:
 			raise IndexError(i)
 		self._terms[i] = x
 
-	def str(self, width: int = 70) -> str:
-		'''Convert to CF file string with width target for lines'''
-		# string multiple nots together
+	def __str__(self) -> str:
 		nots, c = 'not ', self[0]
 		while isinstance(c, NOT):
 			nots += 'not '
 			c = c[0]
-		# try one-liner
-		fmt = '(%s)' if isinstance(c, Conditions) else '%s'
-		s = nots + fmt % c.str(INF)
-		if not isinstance(c, Conditions) or len(s) <= width:
-			return s
-		# multi-line version
-		lines = c.str(width - 2).splitlines()
-		return nots + '(\n  ' + '\n  '.join(lines) + '\n)'
-
-	def __str__(self) -> str:
-		return self.str()
+		return f'{nots}({c})' if isinstance(c, Conditions) else f'{nots}{c}'
 
 class Prop(Condition):
 	'''CF file condition that a property has a certain value'''
@@ -273,14 +223,10 @@ class Prop(Condition):
 		return bool(re.match(r, kwargs[self.name]))
 
 	def __repr__(self) -> str:
-		return '%s(%r, %r)' % (self.__class__.__name__, self.name, self.value)
-
-	def str(self, width: int = 70) -> str:
-		'''Convert to CF file string with width target for lines'''
-		return self.name + ' ' + self.value
+		return f'{self.__class__.__name__}({self.name!r}, {self.value!r})'
 
 	def __str__(self) -> str:
-		return self.str()
+		return self.name + ' ' + self.value
 
 class Scan(Condition):
 	'''CF file condition that a scan time be in a range'''
@@ -319,11 +265,10 @@ class Scan(Condition):
 
 	def __repr__(self) -> str:
 		if self.start == self.stop:
-			return '%s(%r)' % (self.__class__.__name__, self.start)
-		return '%s(%r, %r)' % (self.__class__.__name__, self.start, self.stop)
+			return f'{self.__class__.__name__}({self.start!r})'
+		return f'{self.__class__.__name__}({self.start!r}, {self.stop!r})'
 
-	def str(self, width: int = 70) -> str:
-		'''Convert to CF file string with width target for lines'''
+	def __str__(self) -> str:
 		if self.start is None:
 			return '< ' + utc_epoch(self.stop)
 		if self.stop is None:
@@ -331,9 +276,6 @@ class Scan(Condition):
 		if self.start == self.stop:
 			return utc_epoch(self.start)
 		return utc_epoch(self.start) + ' to ' + utc_epoch(self.stop)
-
-	def __str__(self) -> str:
-		return self.str()
 
 def _parse_condition(tokens: List[str], lazy: bool = False) -> Condition:
 	'''Conditional from reversed tokens'''
@@ -420,17 +362,17 @@ class IF(tuple):
 		return frozenset(i for block in [self.true, self.false] for i in block)
 
 	def __repr__(self) -> str:
-		prefix = '%s(%r' % (self.__class__.__name__, self.condition)
+		prefix = f'{self.__class__.__name__}({self.condition!r}'
 		if self.true:
 			if self.false:
-				return '%s, %r, %r)' % (prefix, self.true, self.false)
-			return '%s, %r)' % (prefix, self.true)
+				return f'{prefix, }, {self.true!r}, {self.false!r})'
+			return f'{prefix, }, {self.true!r})'
 		elif self.false:
-			return '%s, false=%r)' % (prefix, self.false)
-		return '%s)'
+			return f'{prefix, }, false={self.false!r})'
+		return f'{prefix})'
 
 	@staticmethod
-	def _item_str(k: str, v: Any, width: int = 70) -> str:
+	def _item_str(k: str, v: Any) -> str:
 		# str float [float ...]
 		# str [str ...]
 		# float [float ...]
@@ -444,7 +386,6 @@ class IF(tuple):
 		if k.lower() in STR_ARRAY_TOKENS:
 			v.insert(0, len(v))
 			strs.insert(0, str(v[0]))
-		# one-line
 		paired = k.lower() in ('gates', 'notches')
 		if paired:
 			offset = 1 if isinstance(v[0], str) else 0
@@ -453,60 +394,25 @@ class IF(tuple):
 			s += ('  ' if len(v) > 2 + offset else ' ') + '  '.join(x)
 		else:
 			s = k + ' ' + ' '.join(strs)
-		if len(s) <= width:
-			return s
-		# multi-line (single entry)
-		if len(v) == 1:
-			return k + '\n  ' + str(v[0])
-		# multi-line (key [preface-value] ...)
-		if isinstance(v[0], str) ^ isinstance(v[1], str):
-			s = k + ' ' + strs.pop(0) + '\n  '
-			if len(s) > width:
-				s = '%s\n  %s\n  ' % tuple(s.split(' ', 1))
-		else:
-			s = k + '\n  '
-		# multi-line (paired)
-		if paired:
-			ii = range(0, len(strs), 2)
-			line = '  ' + '  '.join(strs[i] + ' ' + strs[i + 1] for i in ii)
-			if len(line) <= width:
-				return s + line
-			return s + '\n  '.join(strs[i] + ' ' + strs[i + 1] for i in ii)
-		# multi-line (unpaired)
-		line = ''
-		while strs:
-			if len(line) + len(strs[0]) > width - 2:
-				s += line.rstrip() + '\n  '
-				line = ''
-			line += strs.pop(0) + ' '
-		s += line.rstrip()
 		return s
 
-	def str(self, width: int = 70) -> str:
-		'''Convert to CF file string with width target for lines'''
+	def __str__(self) -> str:
 		out = []
 		first_block = isinstance(self.condition, Bool) and self.condition.eval()
 		if not first_block:
-			s = 'if ' + self.condition.str(INF)
-			if len(s) > width:
-				x = self.condition.str(width - 2).splitlines()
-				s = 'if\n  %s\n' % '\n  '.join(x)
-			out.append(s)
+			out.append(f'if {self.condition}')
 		for k, v in self.true.items():
 			if first_block:
-				out.append(self._item_str(k, v, width))
+				out.append(self._item_str(k, v))
 			else:
-				x = self._item_str(k, v, width - 2).splitlines()
+				x = self._item_str(k, v).splitlines()
 				out.append('\n'.join('  ' + i for i in x))
 		if self.false:
 			out.append('\nelse' if '\n' in out[0] else 'else')
 		for k, v in self.false.items():
-			x = self._item_str(k, v, width - 2).splitlines()
+			x = self._item_str(k, v).splitlines()
 			out.append('\n'.join('  ' + i for i in x))
 		return '\n'.join(out)
-
-	def __str__(self) -> str:
-		return self.str()
 
 class Eval(tuple):
 	'''Results from CF.eval'''
@@ -548,7 +454,7 @@ class Eval(tuple):
 
 class CF(collections.abc.MutableSequence):
 	'''HOPS fourfit configuration (CF) file'''
-	
+
 	def __init__(self, src: Union[str, io.IOBase, Iterable] = None):
 		'''Read CF file from file path, open text file, or content list'''
 		self._data = []
@@ -673,13 +579,13 @@ class CF(collections.abc.MutableSequence):
 		return len(self._data)
 
 	def __repr__(self) -> str:
-		return '%s(%r)' % (self.__class__.__name__, self._data)
+		return f'{self.__class__.__name__}({self._data!r})'
 
 	def __setitem__(self, i: int, v: Condition):
 		self._data[i] = v
 
 	def __str__(self) -> str:
-		return '\n'.join('%s\n' % str(i) for i in self)
+		return '\n'.join(f'{i}\n' for i in self)
 
 def main():
 	'''Run script'''
@@ -690,7 +596,7 @@ def main():
 	try:
 		cf = CF(a.path or sys.stdin)
 	except Exception as e:
-		sys.stderr.write('%s\n' % str(e))
+		sys.stderr.write(f'{e}\n')
 		sys.exit(getattr(e, 'errno', 1))
 	# write results
 	sys.stdout.write(str(cf))
