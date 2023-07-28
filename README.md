@@ -30,7 +30,7 @@
    * `~/opt/correlator`
 
 3. Add paths to your `.bash_profile` or `.bashrc`:
-   
+
    ```bash
    export CORRPATH=/correlator
    export PATH="$CORRPATH/bin:$PATH"
@@ -46,9 +46,9 @@
 ## Package Contents
 
 ### `pylib/vlbi/__init__.py`
-  
+
 Entry point to main `vlbi` Python module
-  
+
 This module initialization script provides several helper scripts to the rest of the module. Most importantly, it finds the `ROOT` directory for the  correlator, which is defined by either:
 
 * The `$CORRPATH` environment variable, or

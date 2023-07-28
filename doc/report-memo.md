@@ -541,7 +541,7 @@ Jb  0.465863   37  0.462345   53
 * n_[A-Z]  number of scans in average for this band name
 ```
 
-This table may be calculated by the HOPS software package `snratio` command. 
+This table may be calculated by the HOPS software package `snratio` command.
 
 * The first column lists baselines as pairs of 1-character HOPS station IDs
   * The order of stations in the baseline should be the same order that HOPS used

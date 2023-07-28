@@ -25,408 +25,408 @@ RE_DATE = re.compile(RE_DATE, re.I)
 RE_IM = r'^ *scan +\d+ +(?:pointing|phs +ctr +\d+) +src *: *(\S+) *$'
 RE_IM = re.compile(RE_IM, re.I | re.M)
 RE_INCLUDE = re.compile(r'''(?<=/)([^/.][^/]*\.difx/)?(
-	[^./][^/]*\.(calc|flag|im|input|joblist|nodata)|
-	(difx|pcal)_[0-9]+_[^/]*
+    [^./][^/]*\.(calc|flag|im|input|joblist|nodata)|
+    (difx|pcal)_[0-9]+_[^/]*
 )$''', re.I | re.X)
 RE_INPUT = re.compile(r'''
-	^\ *(start\ (?:mjd|seconds)|telescope\ name|rec\ band\ \d+\ pol)
-	(?:\ \d*)?\ *:\s*(\S+)\s*$
+    ^\ *(start\ (?:mjd|seconds)|telescope\ name|rec\ band\ \d+\ pol)
+    (?:\ \d*)?\ *:\s*(\S+)\s*$
 ''', re.I | re.M | re.X)
 RE_PROP = re.compile(r'(?<=;)\s*([a-z_]+)\s*=\s*([^\s:;*]+)\s*[;:]', re.I)
 
 def cddis_upload(
-	src_path: str,
-	netrc: str = '.netrc',
-	file_type: str = 'VLBI',
-	file_content_type: str = 'SWIN',
-	verbose: bool = False
+    src_path: str,
+    netrc: str = '.netrc',
+    file_type: str = 'VLBI',
+    file_content_type: str = 'SWIN',
+    verbose: bool = False
 ) -> None:
-	'''Upload file at `src_path` to CDDIS with given types'''
-	if '/' not in netrc:
-		netrc = os.path.join(os.path.expanduser('~'), netrc)
-	netrc = os.path.realpath(netrc)
-	with tempfile.TemporaryDirectory('.tmp', 'mkvsdc.curl.') as dir:
-		src_name = os.path.basename(src_path)
-		real_src_path = os.path.realpath(src_path)
-		dir0 = os.getcwd()
-		os.chdir(dir)
-		try:
-			# link source file and copy netrc
-			os.symlink(real_src_path, src_name)
-			with open(netrc, 'rb') as src, open('netrc', 'wb') as dst:
-				dst.write(src.read())
-			# log into CDDIS
-			url = 'https://depot.cddis.eosdis.nasa.gov/CDDIS_FileUpload'
-			cmd = ['curl', '-k', '-c', 'cookies', '--netrc-file', 'netrc']
-			cmd += ['-L', f'{url}/login']
-			if verbose:
-				write(' '.join(map(shlex.quote, cmd)) + '\n')
-			proc = run(cmd, stdout=PIPE, stderr=NULL, check=1)
-			if proc.stdout.strip().lower() != b'welcome to cddis file upload':
-				sys.exit('CDDIS login failed')
-			# transfer file
-			cmd = ['curl', '-k', '-b', 'cookies', '--netrc-file', 'netrc']
-			cmd += ['-F', f'fileType={file_type}']
-			cmd += ['-F', f'fileContentType={file_content_type}']
-			cmd += ['-F', f'file[]=@{src_name}', f'{url}/uploadLargeFile/']
-			if verbose:
-				write(' '.join(map(shlex.quote, cmd)) + '\n')
-			out = run(cmd, stdout=PIPE, check=1).stdout.lower()
-			ok = b'successful upload:', b'we are completely uploaded and fine'
-			if not any(msg in out for msg in ok):
-				tty = sys.stderr.isatty()
-				msg = out.decode(errors='replace').rstrip()
-				write(f'\33[2m{msg}\33[22m\n' if tty else f'{msg}\n')
-				sys.exit('CDDIS upload failed')
-		finally:
-			os.chdir(dir0)
+    '''Upload file at `src_path` to CDDIS with given types'''
+    if '/' not in netrc:
+        netrc = os.path.join(os.path.expanduser('~'), netrc)
+    netrc = os.path.realpath(netrc)
+    with tempfile.TemporaryDirectory('.tmp', 'mkvsdc.curl.') as dir:
+        src_name = os.path.basename(src_path)
+        real_src_path = os.path.realpath(src_path)
+        dir0 = os.getcwd()
+        os.chdir(dir)
+        try:
+            # link source file and copy netrc
+            os.symlink(real_src_path, src_name)
+            with open(netrc, 'rb') as src, open('netrc', 'wb') as dst:
+                dst.write(src.read())
+            # log into CDDIS
+            url = 'https://depot.cddis.eosdis.nasa.gov/CDDIS_FileUpload'
+            cmd = ['curl', '-k', '-c', 'cookies', '--netrc-file', 'netrc']
+            cmd += ['-L', f'{url}/login']
+            if verbose:
+                write(' '.join(map(shlex.quote, cmd)) + '\n')
+            proc = run(cmd, stdout=PIPE, stderr=NULL, check=1)
+            if proc.stdout.strip().lower() != b'welcome to cddis file upload':
+                sys.exit('CDDIS login failed')
+            # transfer file
+            cmd = ['curl', '-k', '-b', 'cookies', '--netrc-file', 'netrc']
+            cmd += ['-F', f'fileType={file_type}']
+            cmd += ['-F', f'fileContentType={file_content_type}']
+            cmd += ['-F', f'file[]=@{src_name}', f'{url}/uploadLargeFile/']
+            if verbose:
+                write(' '.join(map(shlex.quote, cmd)) + '\n')
+            out = run(cmd, stdout=PIPE, check=1).stdout.lower()
+            ok = b'successful upload:', b'we are completely uploaded and fine'
+            if not any(msg in out for msg in ok):
+                tty = sys.stderr.isatty()
+                msg = out.decode(errors='replace').rstrip()
+                write(f'\33[2m{msg}\33[22m\n' if tty else f'{msg}\n')
+                sys.exit('CDDIS upload failed')
+        finally:
+            os.chdir(dir0)
 
 class FoundFiles(typing.NamedTuple):
-	'''Files found by `find_files`'''
+    '''Files found by `find_files`'''
 
-	vex: str
-	'''vex file path'''
+    vex: str
+    '''vex file path'''
 
-	v2d: str
-	'''v2d file path'''
+    v2d: str
+    '''v2d file path'''
 
-	inputs: typing.Mapping[str, str]
-	'''map of DiFX input file names to paths'''
+    inputs: typing.Mapping[str, str]
+    '''map of DiFX input file names to paths'''
 
-	others: typing.Mapping[str, str]
-	'''map of other DiFX file names to paths'''
+    others: typing.Mapping[str, str]
+    '''map of other DiFX file names to paths'''
 
 def find_files(
-	dir: str = '.',
-	vex: str = None,
-	v2d: str = None
+    dir: str = '.',
+    vex: str = None,
+    v2d: str = None
 ) -> FoundFiles:
-	'''Find and sort files in session directory path `dir`'''
-	find_vex, find_v2d = not isinstance(vex, str), not isinstance(v2d, str)
-	vexs, v2ds, inputs, others = [], [], {}, collections.OrderedDict()
-	for path in recursive_list(dir):
-		ext = os.path.splitext(path)[1].lower()
-		if ext == '.input':
-			inputs[os.path.basename(path)] = path
-		elif find_vex and ext == '.vex':
-			vexs.append(path)
-		elif find_v2d and ext == '.v2d':
-			v2ds.append(path)
-		else:
-			r = RE_INCLUDE.search(path)
-			if r:
-				(inputs if r.group(3) == 'input' else others)[r.group(0)] = path
-	# check for missing or extra VEX and V2D file(s)
-	for find, name, paths in [(find_vex, 'vex', vexs), (find_v2d, 'v2d', v2ds)]:
-		if find:
-			if not paths:
-				raise OSError(errno.ENOENT, f'{name.upper()} file not found')
-			elif len(paths) > 1:
-				raise OSError(errno.ENOENT, (
-					f'Multiple {name.upper()} files found '
-					f'(use --{name} to select one)'
-				))
-	return FoundFiles(vex or vexs[0], v2d or v2ds[0], inputs, others)
+    '''Find and sort files in session directory path `dir`'''
+    find_vex, find_v2d = not isinstance(vex, str), not isinstance(v2d, str)
+    vexs, v2ds, inputs, others = [], [], {}, collections.OrderedDict()
+    for path in recursive_list(dir):
+        ext = os.path.splitext(path)[1].lower()
+        if ext == '.input':
+            inputs[os.path.basename(path)] = path
+        elif find_vex and ext == '.vex':
+            vexs.append(path)
+        elif find_v2d and ext == '.v2d':
+            v2ds.append(path)
+        else:
+            r = RE_INCLUDE.search(path)
+            if r:
+                (inputs if r.group(3) == 'input' else others)[r.group(0)] = path
+    # check for missing or extra VEX and V2D file(s)
+    for find, name, paths in [(find_vex, 'vex', vexs), (find_v2d, 'v2d', v2ds)]:
+        if find:
+            if not paths:
+                raise OSError(errno.ENOENT, f'{name.upper()} file not found')
+            elif len(paths) > 1:
+                raise OSError(errno.ENOENT, (
+                    f'Multiple {name.upper()} files found '
+                    f'(use --{name} to select one)'
+                ))
+    return FoundFiles(vex or vexs[0], v2d or v2ds[0], inputs, others)
 
 def link_files(
-	dir: str,
-	vex: str,
-	v2d: str,
-	inputs: typing.Mapping[str, str],
-	others: typing.Mapping[str, str],
-	mask: int = 0o777,
-	verbose: bool = False
+    dir: str,
+    vex: str,
+    v2d: str,
+    inputs: typing.Mapping[str, str],
+    others: typing.Mapping[str, str],
+    mask: int = 0o777,
+    verbose: bool = False
 ) -> None:
-	'''Symlink vex, v2d, input, and other paths into directory `dir`
+    '''Symlink vex, v2d, input, and other paths into directory `dir`
 
-	* `inputs` and `others` both map filenames to paths
-	'''
-	for paths in ({os.path.basename(i): i for i in (vex, v2d)}, inputs, others):
-		for name, path in paths.items():
-			subdir = os.path.dirname(name)
-			if subdir:
-				os.makedirs(os.path.join(dir, subdir), exist_ok=1)
-			os.symlink(os.path.realpath(path), os.path.join(dir, name))
-			mode = os.stat(path).st_mode
-			if (mode & mask) != (0o664 & mask):
-				new_mode = 0o777 & ((mode & ~mask) | (0o664 & mask))
-				if verbose:
-					write(f'chmod {new_mode:04o} {shlex.quote(path)}\n')
-				os.chmod(path, new_mode)
+    * `inputs` and `others` both map filenames to paths
+    '''
+    for paths in ({os.path.basename(i): i for i in (vex, v2d)}, inputs, others):
+        for name, path in paths.items():
+            subdir = os.path.dirname(name)
+            if subdir:
+                os.makedirs(os.path.join(dir, subdir), exist_ok=1)
+            os.symlink(os.path.realpath(path), os.path.join(dir, name))
+            mode = os.stat(path).st_mode
+            if (mode & mask) != (0o664 & mask):
+                new_mode = 0o777 & ((mode & ~mask) | (0o664 & mask))
+                if verbose:
+                    write(f'chmod {new_mode:04o} {shlex.quote(path)}\n')
+                os.chmod(path, new_mode)
 
 class Meta(typing.NamedTuple):
-	'''Metadata returned from `make_meta`'''
-	start_time: datetime.datetime
-	session_code: str
-	meta_text: str
+    '''Metadata returned from `make_meta`'''
+    start_time: datetime.datetime
+    session_code: str
+    meta_text: str
 
 def make_meta(
-	vex: str,
-	v2d: str,
-	inputs: typing.Mapping[str, str],
-	others: typing.Mapping[str, str],
-	corr_vers: int = 1,
-	verbose: bool = False
+    vex: str,
+    v2d: str,
+    inputs: typing.Mapping[str, str],
+    others: typing.Mapping[str, str],
+    corr_vers: int = 1,
+    verbose: bool = False
 ) -> Meta:
-	'''Extract metadata from vex, v2d, input, and other files
+    '''Extract metadata from vex, v2d, input, and other files
 
-	* `inputs` and `others` both map filenames to paths
-	'''
-	# read VEX file
-	vex, vex_path = collections.defaultdict(list), vex
-	with open(vex_path) as f:
-		for m in RE_PROP.finditer(f.read()):
-			vex[m.group(1).lower()].append(m.group(2))
-	exp = vex['exper_name'][0].lower()
-	# read DiFX input files
-	if verbose:
-		write(f'reading {len(inputs)} DiFX input files\n')
-	times = set()
-	stations, pols = collections.OrderedDict(), collections.OrderedDict()
-	for path in inputs.values():
-		with open(path) as f:
-			mjd = sec = None
-			for r in RE_INPUT.finditer(f.read()):
-				key = r.group(1).lower()
-				if key == 'telescope name':
-					stations[r.group(2).upper()] = None
-				elif key == 'start mjd':
-					mjd = int(r.group(2), 10)
-				elif key == 'start seconds':
-					sec = int(r.group(2), 10)
-				else:
-					pols[r.group(2)] = 1
-			times.add(EPOCH_MJD + datetime.timedelta(mjd, sec))
-	# read DiFX model files
-	sources = set()
-	ims = [path for path in others.values() if path.lower().endswith('.im')]
-	if verbose:
-		write(f'reading {len(ims)} DiFX im (model) files\n')
-	for path in ims:
-		with open(path) as f:
-			sources.update(r.group(1) for r in RE_IM.finditer(f.read()))
-	# make VSDC meta file
-	line = '# SWIN-ARCHIVE meta data.  Format version  1.01  2020.11.11'
-	out = [line, '# ']
-	out.append(f'exper_name: {exp}')
-	out.append(f'corr_vers:  {corr_vers}')
-	names = 'exper_description', 'exper_desc'
-	v = next((v for n in names for v in vex[n] if v), '??')
-	out.append(f'exper_desc: {v}')
-	v = next((v for v in vex['pi_name'] if v), '??')
-	out.append(f'pi_name:    {v}')
-	v = next((v for v in vex['target_correlator'] if v), '??')
-	out.append(f'corr_name:  {v}')
-	dt0, dt1 = min(times), max(times)
-	mjd0, mjd1 = (dt - EPOCH_MJD for dt in (dt0, dt1))
-	s0, s1 = f'{dt0:%Y.%m.%d_%H:%M:%S}', f'{dt1:%Y.%m.%d_%H:%M:%S}'
-	out.append(f'date_start: {mjd0.days:5d}  {mjd0.seconds:5d}  {s0} UTC')
-	out.append(f'date_stop:  {mjd1.days:5d}  {mjd1.seconds:5d}  {s1} UTC')
-	out.append(f'duration:   {int((dt1 - dt0).total_seconds()):5d}  sec')
-	out.append(f'num_sta:     {len(stations):-5d} ')
-	out.append(f'num_sou:    {len(sources):-5d} ')
-	out.append(f'stations:   {" ".join(stations)} ')
-	out.append(f'sources:    {" ".join(sorted(sources))} ')
-	out.append(f'polariz:    {" ".join(pols)} ')
-	out.append(f'num_inps:   {len(inputs)} ')
-	out.append(f'num_files:  {len(others)} ')
-	out.append(f'vex_file:   {os.path.basename(vex_path)} ')
-	out.append(f'v2d_file:   {os.path.basename(v2d)} ')
-	out.append('#')
-	out.append(f'file:       {exp}_meta.txt')
-	out.append(f'file:       {os.path.basename(vex_path)}')
-	out.append(f'file:       {os.path.basename(v2d)}')
-	out.extend(f'file:       {i}' for i in inputs)
-	out.extend(f'file:       {i}' for i in others)
-	return Meta(dt0, exp, '\n'.join(out) + '\n')
+    * `inputs` and `others` both map filenames to paths
+    '''
+    # read VEX file
+    vex, vex_path = collections.defaultdict(list), vex
+    with open(vex_path) as f:
+        for m in RE_PROP.finditer(f.read()):
+            vex[m.group(1).lower()].append(m.group(2))
+    exp = vex['exper_name'][0].lower()
+    # read DiFX input files
+    if verbose:
+        write(f'reading {len(inputs)} DiFX input files\n')
+    times = set()
+    stations, pols = collections.OrderedDict(), collections.OrderedDict()
+    for path in inputs.values():
+        with open(path) as f:
+            mjd = sec = None
+            for r in RE_INPUT.finditer(f.read()):
+                key = r.group(1).lower()
+                if key == 'telescope name':
+                    stations[r.group(2).upper()] = None
+                elif key == 'start mjd':
+                    mjd = int(r.group(2), 10)
+                elif key == 'start seconds':
+                    sec = int(r.group(2), 10)
+                else:
+                    pols[r.group(2)] = 1
+            times.add(EPOCH_MJD + datetime.timedelta(mjd, sec))
+    # read DiFX model files
+    sources = set()
+    ims = [path for path in others.values() if path.lower().endswith('.im')]
+    if verbose:
+        write(f'reading {len(ims)} DiFX im (model) files\n')
+    for path in ims:
+        with open(path) as f:
+            sources.update(r.group(1) for r in RE_IM.finditer(f.read()))
+    # make VSDC meta file
+    line = '# SWIN-ARCHIVE meta data.  Format version  1.01  2020.11.11'
+    out = [line, '# ']
+    out.append(f'exper_name: {exp}')
+    out.append(f'corr_vers:  {corr_vers}')
+    names = 'exper_description', 'exper_desc'
+    v = next((v for n in names for v in vex[n] if v), '??')
+    out.append(f'exper_desc: {v}')
+    v = next((v for v in vex['pi_name'] if v), '??')
+    out.append(f'pi_name:    {v}')
+    v = next((v for v in vex['target_correlator'] if v), '??')
+    out.append(f'corr_name:  {v}')
+    dt0, dt1 = min(times), max(times)
+    mjd0, mjd1 = (dt - EPOCH_MJD for dt in (dt0, dt1))
+    s0, s1 = f'{dt0:%Y.%m.%d_%H:%M:%S}', f'{dt1:%Y.%m.%d_%H:%M:%S}'
+    out.append(f'date_start: {mjd0.days:5d}  {mjd0.seconds:5d}  {s0} UTC')
+    out.append(f'date_stop:  {mjd1.days:5d}  {mjd1.seconds:5d}  {s1} UTC')
+    out.append(f'duration:   {int((dt1 - dt0).total_seconds()):5d}  sec')
+    out.append(f'num_sta:     {len(stations):-5d} ')
+    out.append(f'num_sou:    {len(sources):-5d} ')
+    out.append(f'stations:   {" ".join(stations)} ')
+    out.append(f'sources:    {" ".join(sorted(sources))} ')
+    out.append(f'polariz:    {" ".join(pols)} ')
+    out.append(f'num_inps:   {len(inputs)} ')
+    out.append(f'num_files:  {len(others)} ')
+    out.append(f'vex_file:   {os.path.basename(vex_path)} ')
+    out.append(f'v2d_file:   {os.path.basename(v2d)} ')
+    out.append('#')
+    out.append(f'file:       {exp}_meta.txt')
+    out.append(f'file:       {os.path.basename(vex_path)}')
+    out.append(f'file:       {os.path.basename(v2d)}')
+    out.extend(f'file:       {i}' for i in inputs)
+    out.extend(f'file:       {i}' for i in others)
+    return Meta(dt0, exp, '\n'.join(out) + '\n')
 
 def make_vsdc(
-	src: str, dst: str, *,
-	delete: bool = False,
-	vex: str = None,
-	v2d: str = None,
-	release: int = 1,
-	verbose: bool = False
+    src: str, dst: str, *,
+    delete: bool = False,
+    vex: str = None,
+    v2d: str = None,
+    release: int = 1,
+    verbose: bool = False
 ) -> str:
-	'''Create VSDC archive at dst from files at src, return VSDC file path'''
-	# copy or move existing archive file
-	if os.path.isfile(src):
-		if os.path.isdir(dst):
-			dst = os.path.join(dst, os.path.basename(src))
-		if not RE_NAME.match(os.path.basename(dst)):
-			msg = 'archive name must have format '
-			sys.exit(msg + 'YYYYmmdd_session_v###_swin.tar.bz2')
-		if src != dst:
-			if verbose:
-				op = 'mv' if delete else 'cp'
-				write(f'{op} {shlex.quote(src)} {shlex.quote(dst)}\n')
-			(shutil.move if delete else shutil.copy2)(src, dst)
-		return dst
-	# find source file(s)
-	if verbose:
-		write(f'finding DiFX files in {shlex.quote(src)}\n')
-	vex, v2d, inputs, others = find_files(src, vex, v2d)
-	if not (inputs and others):
-		msg = '' if inputs else 'input', '' if others else 'output'
-		msg = f'DiFX {", ".join(filter(None, msg))} files not found'
-		raise OSError(errno.ENOENT, msg)
-	if verbose:
-		n_input, n_other = len(inputs), 2 + len(others)
-		write(f'found {n_input} DiFX input and {n_other} other files\n')
-		write(f'vex file {shlex.quote(vex)}\n')
-		write(f'v2d file {shlex.quote(v2d)}\n')
-	# prepare VSDC meta file text
-	dt, exp, txt = make_meta(vex, v2d, inputs, others, release, verbose)
-	# make sandbox in temp dir
-	with tempfile.TemporaryDirectory('.tmp', 'mkvsdc.') as dir:
-		if verbose:
-			write(f'sandboxing {1 + n_input + n_other} files in {dir}\n')
-		u = os.umask(0o002)
-		try:
-			# use either GNU or BSD tar flags
-			cmd = ['tar', '--owner=oper', '--group=vlbi', '--no-unquote']
-			cmd += ['--mode=u+rw,g+rwX,o+rX-w']
-			mask = 0o111
-			v = ['--version']
-			bsd = run(cmd + v, stdin=NULL, stdout=NULL, stderr=NULL).returncode
-			if bsd:
-				cmd = ['tar', '--uname=oper', '--gname=vlbi']
-				mask = 0o777
-			cmd += ['--no-xattrs', '--dereference', '-C', dir, '--null', '-T-']
-			cmd += ['-vjc' if verbose else '-jc']
-			# link existing files into place
-			link_files(dir, vex, v2d, inputs, others, mask, verbose)
-			# write VSDC meta file
-			with open(os.path.join(dir, exp + '_meta.txt'), 'w') as f:
-				f.write(txt)
-				os.fchmod(f.fileno(), 0o664)
-			# compile tar file list
-			paths = [exp + '_meta.txt']
-			paths.extend([os.path.basename(vex), os.path.basename(v2d)])
-			paths.extend(sorted(inputs))
-			paths.extend(sorted(others))
-			# decide archive path
-			if os.path.isdir(dst):
-				name = f'{dt:%Y%m%d}_{exp}_v{release:03d}_swin.tar.bz2'
-				dst = os.path.join(dst, name)
-			# create temp file to send to tar
-			try:
-				with tempfile.NamedTemporaryFile(
-					suffix='.tmp~', prefix='.mkvsdc.',
-					dir=(os.path.dirname(dst) or '.')
-				) as f:
-					# set tar file permissions
-					os.fchmod(f.fileno(), 0o666 & ~u)
-					# run tar
-					if verbose:
-						msg = ' '.join(map(shlex.quote, cmd))
-						write(f'{msg} > {shlex.quote(f.name)}\n')
-					paths = b''.join(path.encode() + b'\0' for path in paths)
-					run(cmd, check=1, input=paths, stdout=f)
-					# move file into place
-					sys.stdout.write(dst + '\n')
-					os.rename(f.name, dst)
-			# make sure the only missing file is the one that was moved
-			except FileNotFoundError as e:
-				if e.filename != f.name:
-					raise
-		# tell user we are cleaning up (dissuade double ctrl+c)
-		finally:
-			if verbose:
-				write('cleaning up\n')
-			os.umask(u)
-	# delete already-archived files
-	if delete:
-		if verbose:
-			write('removing original copies of archived files\n')
-		dirs = set()
-		for paths in (inputs.values(), others.values()):
-			for path in paths:
-				try:
-					os.remove(path)
-				except OSError as e:
-					if e.errno != errno.ENOENT:
-						raise
-				dirs.add(os.path.dirname(path))
-		# remove empty directories
-		for _, dir in sorted((-dir.count('/'), dir) for dir in dirs):
-			if not os.listdir(dir):
-				os.rmdir(dir)
-	return dst
+    '''Create VSDC archive at dst from files at src, return VSDC file path'''
+    # copy or move existing archive file
+    if os.path.isfile(src):
+        if os.path.isdir(dst):
+            dst = os.path.join(dst, os.path.basename(src))
+        if not RE_NAME.match(os.path.basename(dst)):
+            msg = 'archive name must have format '
+            sys.exit(msg + 'YYYYmmdd_session_v###_swin.tar.bz2')
+        if src != dst:
+            if verbose:
+                op = 'mv' if delete else 'cp'
+                write(f'{op} {shlex.quote(src)} {shlex.quote(dst)}\n')
+            (shutil.move if delete else shutil.copy2)(src, dst)
+        return dst
+    # find source file(s)
+    if verbose:
+        write(f'finding DiFX files in {shlex.quote(src)}\n')
+    vex, v2d, inputs, others = find_files(src, vex, v2d)
+    if not (inputs and others):
+        msg = '' if inputs else 'input', '' if others else 'output'
+        msg = f'DiFX {", ".join(filter(None, msg))} files not found'
+        raise OSError(errno.ENOENT, msg)
+    if verbose:
+        n_input, n_other = len(inputs), 2 + len(others)
+        write(f'found {n_input} DiFX input and {n_other} other files\n')
+        write(f'vex file {shlex.quote(vex)}\n')
+        write(f'v2d file {shlex.quote(v2d)}\n')
+    # prepare VSDC meta file text
+    dt, exp, txt = make_meta(vex, v2d, inputs, others, release, verbose)
+    # make sandbox in temp dir
+    with tempfile.TemporaryDirectory('.tmp', 'mkvsdc.') as dir:
+        if verbose:
+            write(f'sandboxing {1 + n_input + n_other} files in {dir}\n')
+        u = os.umask(0o002)
+        try:
+            # use either GNU or BSD tar flags
+            cmd = ['tar', '--owner=oper', '--group=vlbi', '--no-unquote']
+            cmd += ['--mode=u+rw,g+rwX,o+rX-w']
+            mask = 0o111
+            v = ['--version']
+            bsd = run(cmd + v, stdin=NULL, stdout=NULL, stderr=NULL).returncode
+            if bsd:
+                cmd = ['tar', '--uname=oper', '--gname=vlbi']
+                mask = 0o777
+            cmd += ['--no-xattrs', '--dereference', '-C', dir, '--null', '-T-']
+            cmd += ['-vjc' if verbose else '-jc']
+            # link existing files into place
+            link_files(dir, vex, v2d, inputs, others, mask, verbose)
+            # write VSDC meta file
+            with open(os.path.join(dir, exp + '_meta.txt'), 'w') as f:
+                f.write(txt)
+                os.fchmod(f.fileno(), 0o664)
+            # compile tar file list
+            paths = [exp + '_meta.txt']
+            paths.extend([os.path.basename(vex), os.path.basename(v2d)])
+            paths.extend(sorted(inputs))
+            paths.extend(sorted(others))
+            # decide archive path
+            if os.path.isdir(dst):
+                name = f'{dt:%Y%m%d}_{exp}_v{release:03d}_swin.tar.bz2'
+                dst = os.path.join(dst, name)
+            # create temp file to send to tar
+            try:
+                with tempfile.NamedTemporaryFile(
+                    suffix='.tmp~', prefix='.mkvsdc.',
+                    dir=(os.path.dirname(dst) or '.')
+                ) as f:
+                    # set tar file permissions
+                    os.fchmod(f.fileno(), 0o666 & ~u)
+                    # run tar
+                    if verbose:
+                        msg = ' '.join(map(shlex.quote, cmd))
+                        write(f'{msg} > {shlex.quote(f.name)}\n')
+                    paths = b''.join(path.encode() + b'\0' for path in paths)
+                    run(cmd, check=1, input=paths, stdout=f)
+                    # move file into place
+                    sys.stdout.write(dst + '\n')
+                    os.rename(f.name, dst)
+            # make sure the only missing file is the one that was moved
+            except FileNotFoundError as e:
+                if e.filename != f.name:
+                    raise
+        # tell user we are cleaning up (dissuade double ctrl+c)
+        finally:
+            if verbose:
+                write('cleaning up\n')
+            os.umask(u)
+    # delete already-archived files
+    if delete:
+        if verbose:
+            write('removing original copies of archived files\n')
+        dirs = set()
+        for paths in (inputs.values(), others.values()):
+            for path in paths:
+                try:
+                    os.remove(path)
+                except OSError as e:
+                    if e.errno != errno.ENOENT:
+                        raise
+                dirs.add(os.path.dirname(path))
+        # remove empty directories
+        for _, dir in sorted((-dir.count('/'), dir) for dir in dirs):
+            if not os.listdir(dir):
+                os.rmdir(dir)
+    return dst
 
 def recursive_list(
-	dir: str,
-	_old_news: typing.Set[typing.Tuple[int, int]] = None
+    dir: str,
+    _old_news: typing.Set[typing.Tuple[int, int]] = None
 ) -> typing.Iterator[str]:
-	'''Yield all files in a directory recursively and safely'''
-	if not _old_news:
-		st = os.stat(dir)
-		_old_news = {(st.st_dev, st.st_ino)}
-	for name in sorted(os.listdir(dir)):
-		if not RE_BADPATH.search(name):
-			path = os.path.join(dir, name)
-			try:
-				st = os.stat(path)
-			except FileNotFoundError:
-				continue
-			if (st.st_dev, st.st_ino) in _old_news:
-				continue
-			_old_news.add((st.st_dev, st.st_ino))
-			if stat.S_ISDIR(st.st_mode):
-				yield from recursive_list(path, _old_news)
-			elif stat.S_ISREG(st.st_mode):
-				yield path
+    '''Yield all files in a directory recursively and safely'''
+    if not _old_news:
+        st = os.stat(dir)
+        _old_news = {(st.st_dev, st.st_ino)}
+    for name in sorted(os.listdir(dir)):
+        if not RE_BADPATH.search(name):
+            path = os.path.join(dir, name)
+            try:
+                st = os.stat(path)
+            except FileNotFoundError:
+                continue
+            if (st.st_dev, st.st_ino) in _old_news:
+                continue
+            _old_news.add((st.st_dev, st.st_ino))
+            if stat.S_ISDIR(st.st_mode):
+                yield from recursive_list(path, _old_news)
+            elif stat.S_ISREG(st.st_mode):
+                yield path
 
 def main() -> None:
-	'''Run script'''
-	try:
-		# parse args
-		A = argparse.ArgumentParser(description=__doc__)
-		A.add_argument('SRC', help='source directory or tar.bz2')
-		a = A.add_argument('DST', nargs='?')
-		a.help = 'destination directory or filename (default same as SRC)'
-		A.add_argument('--v2d', help='V2D file (default found in DIR)')
-		A.add_argument('--vex', help='VEX file (default found in DIR)')
-		a = A.add_argument('-r', '--release', type=int, default=1)
-		a.help = 'release version (default 1)'
-		a = A.add_argument('-v', '--verbose', action='store_true')
-		a.help = 'output additional info to stderr'
-		a = A.add_argument('-u', '--upload', action='store_true')
-		a.help = 'upload to CDDIS'
-		default_netrc = os.path.expanduser('~/.netrc')
-		a = A.add_argument('-n', '--netrc', default=default_netrc)
-		a.help = 'netrc file for CDDIS (default ~/.netrc)'
-		a = A.add_argument('-d', '--delete', action='store_true')
-		a.help = 'remove archived files from disk after archive is saved'
-		a = A.parse_args()
-		# make or move archive
-		tar_path = make_vsdc(
-			a.SRC, a.DST or a.SRC, delete=a.delete,
-			vex=a.vex, v2d=a.v2d, release=a.release, verbose=a.verbose
-		)
-		# upload
-		if a.upload:
-			cddis_upload(tar_path, a.netrc, verbose=a.verbose)
-	# keyboard interrupt
-	except KeyboardInterrupt:
-		write('\naborting\n')
-		sys.exit(130)
-	# file I/O error
-	except OSError as e:
-		# collect paths from error
-		all_paths = []
-		for paths in filter(None, (e.filename, e.filename2)):
-			paths = filter(None, [paths] if isinstance(paths, str) else paths)
-			all_paths.extend(paths)
-		msg = ' '.join(map(shlex.quote, all_paths)) if all_paths else ''
-		# exit with user-friendly error message
-		write(f'error: {e.strerror}: {msg}\naborting\n')
-		sys.exit(e.errno)
-	# subprocess (tar or curl) failed
-	except CalledProcessError as e:
-		msg = ' '.join(map(shlex.quote, e.cmd))
-		write(f'error: {msg}\naborting\n')
-		sys.exit(e.returncode)
+    '''Run script'''
+    try:
+        # parse args
+        A = argparse.ArgumentParser(description=__doc__)
+        A.add_argument('SRC', help='source directory or tar.bz2')
+        a = A.add_argument('DST', nargs='?')
+        a.help = 'destination directory or filename (default same as SRC)'
+        A.add_argument('--v2d', help='V2D file (default found in DIR)')
+        A.add_argument('--vex', help='VEX file (default found in DIR)')
+        a = A.add_argument('-r', '--release', type=int, default=1)
+        a.help = 'release version (default 1)'
+        a = A.add_argument('-v', '--verbose', action='store_true')
+        a.help = 'output additional info to stderr'
+        a = A.add_argument('-u', '--upload', action='store_true')
+        a.help = 'upload to CDDIS'
+        default_netrc = os.path.expanduser('~/.netrc')
+        a = A.add_argument('-n', '--netrc', default=default_netrc)
+        a.help = 'netrc file for CDDIS (default ~/.netrc)'
+        a = A.add_argument('-d', '--delete', action='store_true')
+        a.help = 'remove archived files from disk after archive is saved'
+        a = A.parse_args()
+        # make or move archive
+        tar_path = make_vsdc(
+            a.SRC, a.DST or a.SRC, delete=a.delete,
+            vex=a.vex, v2d=a.v2d, release=a.release, verbose=a.verbose
+        )
+        # upload
+        if a.upload:
+            cddis_upload(tar_path, a.netrc, verbose=a.verbose)
+    # keyboard interrupt
+    except KeyboardInterrupt:
+        write('\naborting\n')
+        sys.exit(130)
+    # file I/O error
+    except OSError as e:
+        # collect paths from error
+        all_paths = []
+        for paths in filter(None, (e.filename, e.filename2)):
+            paths = filter(None, [paths] if isinstance(paths, str) else paths)
+            all_paths.extend(paths)
+        msg = ' '.join(map(shlex.quote, all_paths)) if all_paths else ''
+        # exit with user-friendly error message
+        write(f'error: {e.strerror}: {msg}\naborting\n')
+        sys.exit(e.errno)
+    # subprocess (tar or curl) failed
+    except CalledProcessError as e:
+        msg = ' '.join(map(shlex.quote, e.cmd))
+        write(f'error: {msg}\naborting\n')
+        sys.exit(e.returncode)
 
 if __name__ == '__main__':
-	main()
+    main()
