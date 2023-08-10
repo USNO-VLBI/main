@@ -1101,9 +1101,9 @@ class Report(collections.abc.MutableMapping):
                 '0': 'No fringes found'
             }.get(q0)):
                 notes.append((s.id, msg))
-            elif scans := sorted(
+            elif scans := sorted((
                 scan for scan in vex_scans.values() if s.id in scan.stations
-            ):
+            ), key=(lambda i: (i.start, i.source, sorted(i.stations.items())))):
                 start, end = scans[0].start, scans[-1].start
                 t0, t1, minus0, ranges = None, None, False, []
                 for scan in scans:
