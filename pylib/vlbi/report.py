@@ -918,11 +918,14 @@ class Report(collections.abc.MutableMapping):
         if not session:
             vlbi.error('No session name from VEX file', exit=errno.ENOENT)
         ## read master file
-        master = vlbi.master.get_session(
-            session, *find_files(all_paths, _IS_MASTER),
-            near=next(iter(vex_scans.values())).start.year,
-            callback=lambda p: vlbi.info(f'reading {shlex.quote(p)}', verbose)
-        )
+        callback = lambda p: vlbi.info(f'reading {shlex.quote(p)}', verbose)
+        try:
+            master = vlbi.master.get_session(
+                session, *find_files(all_paths, _IS_MASTER), callback=callback,
+                near=next(iter(vex_scans.values())).start.year
+            )
+        except KeyError:
+            vlbi.error(f'session {session} not found in master file(s)', exit=1)
         ## read catmap
         if catmap in (True, None):
             catmap = vlbi.catmap.CatMap(verbose=verbose)
