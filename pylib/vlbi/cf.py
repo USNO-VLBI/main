@@ -270,12 +270,12 @@ class Scan(Condition):
 
     def __str__(self) -> str:
         if self.start is None:
-            return '< ' + utc_epoch(self.stop)
+            return f'scan < {utc_epoch(self.stop)}'
         if self.stop is None:
-            return '> ' + utc_epoch(self.start)
+            return f'scan > {utc_epoch(self.start)}'
         if self.start == self.stop:
-            return utc_epoch(self.start)
-        return utc_epoch(self.start) + ' to ' + utc_epoch(self.stop)
+            return f'scan {utc_epoch(self.start)}'
+        return f'scan {utc_epoch(self.start)} to {utc_epoch(self.stop)}'
 
 def _parse_condition(tokens: List[str], lazy: bool = False) -> Condition:
     '''Conditional from reversed tokens'''
