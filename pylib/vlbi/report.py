@@ -186,11 +186,17 @@ def read_report_text(path: str, keep_looking_for_name=True) -> ReportText:
                             data = file.read()
                             if r := _IS_REPORT_CONTENT(data):
                                 text = r[0].decode(errors='replace')
+                                # be very forgiving of timestamps
+                                # such as "2023/10/17 20:04:60 UTC"
+                                mtime = info.mtime
+                                timestamp = datetime.fromtimestamp(mtime)
                                 if r := _RE_TIMETAG.search(data):
-                                    timestamp = datetime(*map(int, r.groups()))
-                                else:
-                                    mtime = info.mtime
-                                    timestamp = datetime.fromtimestamp(mtime)
+                                    try:
+                                        y, mo, d, h, m, s = map(int, r.groups())
+                                        s = timedelta(0, h * 3600 + m * 60 + s)
+                                        timestamp = datetime(y, mo, d) + s
+                                    except ValueError:
+                                        pass
                     elif info.path.lower().endswith('.wrp'):
                         with tarball.extractfile(info) as file:
                             if r:= _IS_SESSION_LINE(file.read()):
