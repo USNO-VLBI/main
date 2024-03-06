@@ -585,7 +585,7 @@ class Master(collections.abc.MutableMapping):
         magic2 = f'{self.format_date:%Y.%m.%d}' if self.format_date else ''
         magic2 += f' {self.format_author}' if self.format_author else ''
         magic2 = magic2.strip()
-        space = ' ' * max(2, 80 - len(magic1) - len(magic2))
+        space = ' ' * max(2, 62 - len(magic1) - len(magic2))
         magic = magic1 + space + magic2 + '\n'
         # title
         title = f'''{self.title or '':^80}'''.rstrip()
