@@ -2,7 +2,7 @@
 
 '''IVS correlation report V2.0
 
-extract exising report from a VGOSDB:
+extract existing report from a VGOSDB:
   > report path/to/session/01JAN01XX.tgz
 
 build a new report:
@@ -82,6 +82,8 @@ _IS_SKD = re.compile(r'.*\.skd$', re.I).match
 _IS_SNR = re.compile(r'.*\.snr$', re.I).match
 _IS_STATIONS = re.compile(r'(?:.*/)?(?:stations.m|m.stations)$', re.I).match
 _IS_NSCODES = re.compile(r'(?:.*/)?ns-codes.txt$', re.I).match
+_RE_CF_WS = re.compile(r'(\s+|\*.*)+', re.M)
+_RE_CF_BLANK_LINE = re.compile(r'(?:\s*?(\n))?\s*\n')
 _RE_DATETIME = re.compile(r'-$|\d{4}-\d{3}-\d{4}(?:\d\d)?$')
 _RE_LEGEND = re.compile(r'^\s*\*\s*(\S+)\s+(\S.*)', re.M)
 _RE_PASSWD_PARENS = re.compile(r'\([^()]*\)|\[[^[\]]*\]|\{[^{}]*\}|<[^<>]*>')
@@ -506,6 +508,8 @@ class Fringe(NamedTuple):
         length = timedelta(0, float(r[200]['stop_offset']))
         # correlation details
         corr_sw = r[200]['corr_name'].decode()
+        # CF file
+        cf = ' '.join(r[222]['cf'].decode().split()) if 222 in r else None
         # results
         return Fringe(
             r[200]['experiment_name'].decode(),
@@ -519,7 +523,7 @@ class Fringe(NamedTuple):
             tuple(i.decode() for i in r[202]['station_name']),
             list(map(float, r[202]['clock'])),
             list(map(float, r[202]['clock_rate'])),
-            chans, man_pcal, r[222]['cf'].decode() if 222 in r else None,
+            chans, man_pcal, cf,
             set(name[:1] for _, name, id in chans if id and name[:1]),
             set(name[:1] for _, name, _ in chans if name[:1]),
             float(r[208]['snr']), ff_ver,
@@ -1340,15 +1344,36 @@ class Report(collections.abc.MutableMapping):
         else:
             vlbi.error('v2d file not found, skipping CORRELATION_CONFIG_FILE')
         ## FRINGING_CONFIG_FILE
-        cf = [str(vlbi.cf.CF(io.StringIO(text))) for text in fringes.cf]
-        if not cf and (cf := find_files(all_paths, _IS_CF)):
-            cf = sorted({str(vlbi.cf.CF(p)) for p in cf})
-        if cf:
-            if (n := len(fringes.cf)) > 1:
-                vlbi.warn(f'found {n} CF files, including all of them')
-                cf = '\n'.join(f'* file {i}\n\n{c}' for i, c in enumerate(cf))
+        # first read all the available CF files on disk
+        file_cfs = {}
+        for path in find_files(all_paths, _IS_CF):
+            text = read_path(path)
+            # clean up report-ready text
+            text = _RE_CF_BLANK_LINE.sub(r'\1\n', text).strip() + '\n'
+            # later, this might also warn for apparent commented CF code
+            # compress to fringe-comparable minimal format
+            condensed = _RE_CF_WS.sub(' ', text).strip()
+            file_cfs[condensed] = path, text
+        # then read the (more trusted) CF files encoded in the fringe files
+        cfs = []
+        for fringe_text in fringes.cf:
+            if fringe_text in file_cfs:
+                path, text = file_cfs[fringe_text]
+                vlbi.info(f'cf matching fringes: {shlex.quote(path)}', verbose)
+                cfs.append(text)
             else:
-                cf = next(iter(cf))
+                cfs.append(str(vlbi.cf.CF(io.StringIO(fringe_text))))
+        # use the unvalidated CF files from disk if no fringe CF found
+        if not cfs:
+            vlbi.warn(f'no fringe file cf, naively using cf from disk', verbose)
+            cfs = [text for _, text in file_cfs.values()]
+        # compile the results
+        if cfs:
+            if (n := len(cfs)) > 1:
+                vlbi.warn(f'found {n} CF files, including all of them')
+                cf = '\n'.join(f'* file {i}\n\n{c}' for i, c in enumerate(cfs))
+            else:
+                cf = cfs[0]
             sections['FRINGING_CONFIG_FILE'] = cf
         else:
             vlbi.warn('no fringing config (CF) file found')
