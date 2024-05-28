@@ -86,7 +86,7 @@ RE_VEX_COMMENT = re.compile(r'\*.*')
 RE_VEX_CLOCK = re.compile(r'(?:^|(?<=;))\s*clock_early\s*=([^;]*)', re.S)
 RE_VEX_DEF = r'(?:^|(?<=;))\s*def\s*([^;]*);((?:(?!\s*enddef\b)[^;]*;)*)'
 RE_VEX_DEF = re.compile(RE_VEX_DEF, re.S)
-RE_VEX_EPOCH = r'\s*(\d{4})y(?:(\d+)d)?(?:(\d)+h)?(?:(\d)+m)?(?:(\d)+s)?\s*$'
+RE_VEX_EPOCH = r'\s*(\d{4})y(?:(\d+)d)?(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?\s*$'
 RE_VEX_EPOCH = re.compile(RE_VEX_EPOCH)
 RE_VEX_EXPER = re.compile(r';\s*exper_name\s*=\s*([^;]*)', re.S)
 RE_VEX_START = r';\s*(?:exper_nominal_)?start\s*=\s*([\dydhms]+)'
@@ -638,7 +638,7 @@ def main():
         if a.verbose:
             po = f'{"N/A":^17}' if po is None else f'{po * 1e6:12.3f} usec'
             mo = f'{"N/A":^17}' if mo is None else f'{mo * 1e6:+12.3f} usec'
-            msg = f'  *{po}{mo} {n:7d}  {mode}'.rstrip()
+            msg = f'  *{mo}{po} {n:7d}  {mode}'.rstrip()
             msg = f'\033[2m{msg}\033[22m' if sys.stdout.isatty() else msg
             sys.stdout.write(msg)
         sys.stdout.write('\n')
