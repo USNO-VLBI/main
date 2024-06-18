@@ -78,6 +78,7 @@ RE_OFFSET = re.compile(rf'''
     (?:.*?(?:@|\bat)\ *(\d\d\d[/.-]\d\d:\d\d)\ *utc?\b)?
 ''', re.X).findall
 
+RE_PEC_OFFSET = re.compile(r'^([^#]\S+)\s+\S+\s+(\S+)\s+\S+', re.M)
 RE_SECTION = re.compile(r'^\$([A-Z0-9a-z_-]*)((?:(?!\$).*$\n?)*)', re.M)
 RE_SKD_START = re.compile(r'(?:^|\s)START\s+(\d{13})(?:\s|$)')
 RE_SKD_SUBNET = re.compile(r'^Subnet\s+(.*)', re.M | re.I)
@@ -435,10 +436,13 @@ def fit_fmout(
     if clock_offsets:
         info(f'reading {clock_offsets}', verbose)
         with open(clock_offsets) as file:
-            pecoffs = {
-                cols[0].capitalize(): 1e-6 * float(cols[1])
-                for cols in (line.split() for line in file) if len(cols) == 2
-            }
+            pecoffstr = file.read()
+            #pecoffs = {
+            #    cols[0].capitalize(): 1e-6 * float(cols[1])
+            #    for cols in (line.split() for line in file) if len(cols) == 4 and not line.startswith('#')
+            #}
+        for val in RE_PEC_OFFSET.finditer(pecoffstr):
+            pecoffs[val.group(1)] = 1e-6 * float(val.group(2))
     # Read log file for each station, get fmout and time data, mark if log is
     # missing or unreadable
     fits = {}
@@ -561,7 +565,7 @@ def main():
     # Parse args
     A = argparse.ArgumentParser(description=__doc__.partition('\n')[0])
     A.add_argument('path', default='.', nargs='*', help=(
-        'paths to station logs and VEX/SKED schedules, '
+        'paths to station logs and VEX or SKED file, '
         'or session name to find paths automatically (default: %(default)s)'
     ))
     A.add_argument(
