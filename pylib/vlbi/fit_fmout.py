@@ -247,6 +247,8 @@ def find_files(
     '''Find file(s) in `paths` matching `valid(path)`'''
     found, _visited = [], set() if _visited is None else _visited
     for path in [paths] if isinstance(paths, str) else paths:
+        if not os.path.exists(path):
+            continue
         st = os.stat(path)
         if (st.st_dev, st.st_ino) in _visited:
             continue
