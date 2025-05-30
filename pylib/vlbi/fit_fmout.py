@@ -56,7 +56,7 @@ RE_TIMESTAMP = re.compile(RE_TIMESTAMP).match
 RE_TYPE = r'''
     (?:
         gps|(?:h-?)?maser|dbe|dbbcout|(?:fm|form(?:atter)?)(?:oun?t)
-        |mk[345]b?|stm|st1pps|tac|pps
+        |mk[345]b?|bd|BD|stm|st1pps|tac|pps
     )[0-9]*
 '''
 # This regex parses the whole clock offset log line except for time stamp
@@ -154,7 +154,7 @@ def read_log(log: Union[str, Iterable[str]]) -> Log:
                 ref_year = int(r.group(1))
             continue
         # pre-filter to gps/maser lines
-        if not ('gps' in l or 'maser' in l or 'tac' in l or 'pps' in l):
+        if not ('gps' in l or 'maser' in l or 'tac' in l or 'pps' in l or 'bd' in l):
             # scan more deeply for comments
             if ('dbe' in l or 'dbbc' in l or 'form' in l or (
                 'mk' in l and ('mk3' in l or 'mk4' in l or 'mk5' in l)
@@ -225,12 +225,13 @@ def read_log(log: Union[str, Iterable[str]]) -> Log:
             val = unit * float(''.join(val.split()).replace(',', '.'))
             # sort source and target by rank
             source_rank, target_rank = ((
-                7 if 'f' in txt else  # fmout|...
-                6 if 'd' in txt else  # dbe|dbbcout
-                5 if 'k' in txt else  # mk[345]
-                4 if 'st' in txt else  # stm|st1pps
-                3 if 'm' in txt else  # maser
-                2 if 'g' in txt else  # gps
+                8 if 'f' in txt else  # fmout|...
+                7 if 'd' in txt else  # dbe|dbbcout
+                6 if 'k' in txt else  # mk[345]
+                5 if 'st' in txt else  # stm|st1pps
+                4 if 'm' in txt else  # maser
+                3 if 'g' in txt else  # gps
+                2 if 'b' in txt else  # beidou
                 1 if 't' in txt else  # tac
                 0  # pps
             ) for txt in (src, tgt))
