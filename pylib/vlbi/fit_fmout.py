@@ -55,15 +55,15 @@ RE_TIMESTAMP = re.compile(RE_TIMESTAMP).match
 
 RE_TYPE = r'''
     (?:
-        gps|(?:h-?)?maser|dbe|dbbcout|(?:fm|form(?:atter)?)(?:oun?t)
-        |mk[345]b?|bd|BD|stm|st1pps|tac|pps
-    )[0-9]*
+        gps|(?:h-?)?maser|dbe|dbbcout[0-9]?|(?:fm|form(?:atter)?)(?:oun?t)
+        |mk[345]b?|bd|BD|stm|st1pps|tac|pps|dot
+    )
 '''
 # This regex parses the whole clock offset log line except for time stamp
 # groups: source, target, suffix, value, prefix, unit, clock_time
 RE_OFFSET = re.compile(rf'''
     # source, separator, target, suffix
-    \b({RE_TYPE})(?:-|_|\ |\bto\b)*({RE_TYPE})(.*?)
+    \b({RE_TYPE})(?:-|2|_|\ |\bto\b|\b2\b)*({RE_TYPE})(.*?)
 
     # offset value
     # >= 2 digit integers to filter spurious 1-digit integer between key/value
@@ -225,8 +225,9 @@ def read_log(log: Union[str, Iterable[str]]) -> Log:
             val = unit * float(''.join(val.split()).replace(',', '.'))
             # sort source and target by rank
             source_rank, target_rank = ((
-                8 if 'f' in txt else  # fmout|...
-                7 if 'd' in txt else  # dbe|dbbcout
+                9 if 'f' in txt else  # fmout|...
+                8 if 'db' in txt else  # dbe|dbbcout
+                7 if 'do' in txt else  # dot
                 6 if 'k' in txt else  # mk[345]
                 5 if 'st' in txt else  # stm|st1pps
                 4 if 'm' in txt else  # maser
@@ -457,8 +458,8 @@ def fit_fmout(
         clocks = read_log(log)[0]
         # Cycle through possible timing options,
         # from most desirable (fmout-gps) to least
-        src_prefs = 'f', 'd', 'k', 'st', 'm', 'g', 't', ''
-        tgt_prefs = 'f', 'd', 'k', 'st', 'm', 'p', 'g', 't', ''
+        src_prefs = 'f', 'db', 'do', 'k', 'st', 'm', 'g', 'b', 't', ''
+        tgt_prefs = 'f', 'db', 'do', 'k', 'st', 'm', 'p', 'g', 'b', 't', ''
         prefs = {(
             next(i for i, c in enumerate(src_prefs) if c in src),
             next(j for j, c in enumerate(tgt_prefs) if c in tgt)
